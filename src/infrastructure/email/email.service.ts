@@ -1,123 +1,69 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { InjectSendGrid, SendGridService } from '@ntegral/nestjs-sendgrid';
-import { EmailConfiguration } from '@infrastructure/config/configuration.interface';
+import * as Brevo from '@getbrevo/brevo';
 
 @Injectable()
 export class EmailService {
-  private readonly from: { email: string; name: string };
-  private readonly emailConfig: EmailConfiguration;
+  private readonly api: Brevo.TransactionalEmailsApi;
 
-  constructor(
-    @InjectSendGrid() private readonly sendGridService: SendGridService,
-    private readonly configService: ConfigService,
-  ) {
-    this.emailConfig = this.configService.get<EmailConfiguration>('email');
-    const { fromEmail, fromName } = this.emailConfig;
-    this.from = {
-      email: fromEmail,
-      name: fromName,
-    };
+  constructor() {
+    this.api = new Brevo.TransactionalEmailsApi();
+    this.api.setApiKey(
+      Brevo.TransactionalEmailsApiApiKeys.apiKey,
+      process.env.BREVO_API_KEY,
+    );
   }
 
-  // async sendEmailWithPDF(
-  //   to: string,
-  //   base64file: string,
-  //   subject: string,
-  //   filename = 'document.pdf',
-  //   bcc: string[] = [],
-  //   replyTo: string | null = null,
-  // ) {
-  //   const type = 'application/pdf';
+  async sendQrEmail(to: string, qrBase64: string) {
+    // Remove the data URL prefix to get just the base64 content
+    const base64Content = qrBase64.replace(/^data:image\/png;base64,/, '');
 
-  //   if (!base64file) {
-  //     throw new InternalServerErrorException('Argument base64file is missing');
-  //   }
+    const email = new Brevo.SendSmtpEmail();
+    email.to = [{ email: to }];
+    email.sender = {
+      name: 'ConfeJAS Lima Oeste',
+      email: 'confejaslimaoeste@outlook.com',
+    };
+    email.subject = 'Tu código QR de acceso';
 
-  //   if (!to) {
-  //     throw new InternalServerErrorException('Argument to is missing');
-  //   }
+    // Don't use inline images - just provide download link
+    email.htmlContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #333;">¡Bienvenido a ConfeJAS Lima Oeste! 🎉</h2>
+        <p>Hola 👋,</p>
+        <p>Tu código QR de acceso al evento está adjunto en este correo.</p>
+        
+        <div style="background-color: #e3f2fd; border-left: 4px solid #2196f3; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-weight: bold;">📱 Cómo usar tu QR:</p>
+          <ol style="margin: 10px 0; padding-left: 20px;">
+            <li>Descarga la imagen adjunta llamada <strong>"mi-codigo-qr.png"</strong></li>
+            <li>Guárdala en tu dispositivo móvil</li>
+            <li>Preséntala al ingresar al evento</li>
+          </ol>
+        </div>
 
-  //   if (!subject) {
-  //     throw new InternalServerErrorException('Argument subject is missing');
-  //   }
+        <div style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+          <p style="margin: 0; font-weight: bold;">⚠️ Importante:</p>
+          <ul style="margin: 10px 0; padding-left: 20px;">
+            <li>Este código QR es personal e intransferible</li>
+            <li>No compartas este código con otras personas</li>
+            <li>Guárdalo en un lugar seguro</li>
+          </ul>
+        </div>
 
-  //   if (!Array.isArray(bcc)) {
-  //     throw new InternalServerErrorException('Argument bcc should be an array');
-  //   }
+        <p style="color: #666;">¡Nos vemos en el evento!</p>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+        <p style="color: #999; font-size: 12px;">ConfeJAS Lima Oeste</p>
+      </div>
+    `;
 
-  //   if (bcc.includes(to)) {
-  //     const index = bcc.indexOf(to);
-  //     bcc.splice(index, 1);
-  //   }
-  //   bcc = Array.from(new Set(bcc));
+    // Attach QR as downloadable file
+    email.attachment = [
+      {
+        content: base64Content,
+        name: 'mi-codigo-qr.png',
+      },
+    ];
 
-  //   const response = await this.sendGridService.send({
-  //     personalizations: [
-  //       {
-  //         to: [{ email: to }],
-  //       },
-  //       ...bcc.map((email) => ({
-  //         to: [{ email }],
-  //       })),
-  //     ],
-  //     from: {
-  //       name: this.emailConfig.fromName || 'Rotazio',
-  //       email: this.emailConfig.fromEmail,
-  //     },
-  //     replyTo,
-  //     subject,
-  //     html: `<p>${subject}</p>`,
-  //     attachments: [
-  //       {
-  //         content: base64file,
-  //         filename,
-  //         type,
-  //         disposition: 'attachment',
-  //       },
-  //     ],
-  //   });
-
-  //   return response;
-  // }
-
-  // async newUser(user: User) {
-  //   const url = `${process.env.WEB_APP_URL}/auth/change-password/${user.resetPasswordToken}`;
-
-  //   const mail: MailDataRequired = {
-  //     to: user.email,
-  //     from: process.env.EMAIL_FROM_EMAIL,
-  //     subject: `Welcome to ${process.env.APP_NAME}`,
-  //     html: newUserTemplate(`${user.firstName} ${user.lastName}`, process.env.APP_NAME, url),
-  //   };
-
-  //   return await this.sendGridService.send(mail);
-  // }
-
-  // async resetPassword(user: User, token: string) {
-  //   const { requestPasswordTemplate } = this.emailConfig;
-  //   return await this.sendGridService.send({
-  //     to: user.email,
-  //     from: this.from,
-  //     templateId: requestPasswordTemplate,
-  //     dynamicTemplateData: {
-  //       name: `${user.firstName} ${user.lastName}`,
-  //       code: token,
-  //     },
-  //   });
-  // }
-
-  // async changePassword(user: User, token: string) {
-  //   const appConfig = this.configService.get<AppConfiguration>('app');
-  //   const url = `${appConfig.recoverPasswordUrl}/${token}`;
-
-  //   const mail: MailDataRequired = {
-  //     to: user.email,
-  //     from: this.from.email,
-  //     subject: `Password change request`,
-  //     html: changePasswordTemplate(`${user.firstName} ${user.lastName}`, url),
-  //   };
-
-  //   return await this.sendGridService.send(mail);
-  // }
+    return await this.api.sendTransacEmail(email);
+  }
 }

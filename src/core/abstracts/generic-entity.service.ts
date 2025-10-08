@@ -58,7 +58,7 @@ export abstract class GenericEntityService<T> {
     // return null;
   }
 
-  public async findById(id: number): Promise<T> {
+  public async findById(id: string): Promise<T> {
     try {
       this.logger.debug({ message: 'Operation findById', id });
       return await this.repository.findById(id);
@@ -78,7 +78,7 @@ export abstract class GenericEntityService<T> {
     }
   }
 
-  public async update(id: number, updateInput: Partial<T>): Promise<T> {
+  public async update(id: string, updateInput: Partial<T>): Promise<T> {
     try {
       this.logger.debug({ message: 'Operation update', id, updateInput });
       return await this.repository.update(id, updateInput);
@@ -92,7 +92,7 @@ export abstract class GenericEntityService<T> {
     }
   }
 
-  public async remove(id: number): Promise<T> {
+  public async remove(id: string): Promise<T> {
     try {
       this.logger.debug({ message: 'Operation remove', id });
       return await this.repository.delete(id);

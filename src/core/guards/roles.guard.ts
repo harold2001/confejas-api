@@ -1,23 +1,41 @@
-// import { CanActivate, ExecutionContext, Injectable, Logger } from '@nestjs/common';
-// import { Reflector } from '@nestjs/core';
-// import { User } from '@modules/user/entities/user.entity';
-// import { AppRole } from '@core/enums/roles';
-// import { validateUserRole } from '@core/validation/validate-role';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  ForbiddenException,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 
-// @Injectable()
-// export class RolesGuard implements CanActivate {
-//   private readonly logger = new Logger(RolesGuard.name);
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
 
-//   constructor(private reflector: Reflector) {}
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>('roles', [
+      context.getHandler(),
+      context.getClass(),
+    ]);
 
-//   async canActivate(context: ExecutionContext): Promise<boolean> {
-//     const roles = this.reflector.getAllAndOverride<AppRole[]>('roles', [context.getHandler(), context.getClass()]);
-//     const handlerName = context.getHandler().name;
-//     if (!roles || !roles.length) {
-//       return true;
-//     }
+    if (!requiredRoles || requiredRoles.length === 0) {
+      return true;
+    }
 
-//     const { user }: { user: User } = context.switchToHttp().getRequest();
-//     return validateUserRole(user, roles, handlerName, this.logger);
-//   }
-// }
+    const { user } = context.switchToHttp().getRequest();
+
+    if (!user || !user.roles) {
+      throw new ForbiddenException('Access denied: No roles assigned');
+    }
+
+    const hasRole = user.roles.some((role: any) =>
+      requiredRoles.includes(role.name),
+    );
+
+    if (!hasRole) {
+      throw new ForbiddenException(
+        `Access denied: Requires one of these roles: ${requiredRoles.join(', ')}`,
+      );
+    }
+
+    return true;
+  }
+}

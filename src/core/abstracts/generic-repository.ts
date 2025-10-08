@@ -10,7 +10,7 @@ export abstract class GenericRepository<T> {
     filters?: FilterInput,
   ): Promise<PageResult<T>>;
 
-  abstract findById(id: number): Promise<T>;
+  abstract findById(id: string): Promise<T>;
 
   abstract findOne<FilterInput>(filters: FilterInput): Promise<T>;
 
@@ -18,9 +18,9 @@ export abstract class GenericRepository<T> {
   // abstract create(entity: Partial<T>): Promise<T>;
   abstract create<CreateInput>(entity: CreateInput): Promise<T>;
 
-  abstract update(id: number, entity: T | DeepPartial<T>): Promise<T>;
-  // abstract update(id: number, entity: Partial<T>): Promise<T>;
-  abstract update<UpdateInput>(id: number, entity: UpdateInput): Promise<T>;
+  abstract update(id: string, entity: T | DeepPartial<T>): Promise<T>;
+  // abstract update(id: string, entity: Partial<T>): Promise<T>;
+  abstract update<UpdateInput>(id: string, entity: UpdateInput): Promise<T>;
 
-  abstract delete(id: number): Promise<T>;
+  abstract delete(id: string): Promise<T>;
 }
