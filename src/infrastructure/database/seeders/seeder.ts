@@ -1,50 +1,68 @@
 import { Injectable, Logger } from '@nestjs/common';
-// import { UserSeedService } from './user/user-seed.service';
-// import { RoleSeedService } from '@infrastructure/database/seeders/role/role-seed.service';
-// import { Role } from '@modules/role/entities/role.entity';
+import { RolesSeedService } from './roles/roles-seed.service';
+import { BuildingsSeedService } from './buildings/buildings-seed.service';
+import { RoomTypesSeedService } from './room-types/room-types-seed.service';
+import { FloorsSeedService } from './floors/floors-seed.service';
+import { RoomsSeedService } from './rooms/rooms-seed.service';
+import { UsersSeedService } from './users/users-seed.service';
+import { UserRoomsSeedService } from './user-rooms/user-rooms-seed.service';
+import { StakesSeedService } from './stakes/stakes-seed.service';
 
 @Injectable()
 export class Seeder {
+  private readonly logger = new Logger(Seeder.name);
+
   constructor(
-    private readonly logger: Logger,
-    // private readonly userSeeder: UserSeedService,
-    // private readonly roleSeeder: RoleSeedService,
-    // private readonly documentTypeSeedService: DocumentTypeSeedService,
-    // private readonly dispatchTypeSeedService: DispatchTypeSeedService,
-    // private readonly dispatchTypeRepository: DispatchTypeRepository,
+    private readonly rolesSeedService: RolesSeedService,
+    private readonly buildingsSeedService: BuildingsSeedService,
+    private readonly roomTypesSeedService: RoomTypesSeedService,
+    private readonly floorsSeedService: FloorsSeedService,
+    private readonly roomsSeedService: RoomsSeedService,
+    private readonly usersSeedService: UsersSeedService,
+    private readonly userRoomsSeedService: UserRoomsSeedService,
+    private readonly stakesSeedService: StakesSeedService,
   ) {}
 
-  async seed() {
-    // try {
-    //   this.logger.log('Running seed...');
-    //   const roles = await this.roles();
-    //   await this.dispatchTypes();
-    //   await this.documentTypes();
-    //   await this.users(roles);
-    // } catch (err) {
-    //   this.logger.error(err);
-    // }
-  }
+  async seed(): Promise<void> {
+    this.logger.log('🚀 Starting database seeding process...');
 
-  // private async users(roles: Role[]) {
-  // try {
-  //   this.logger.log('Seeding users...');
-  //   const users = await Promise.all(this.userSeeder.create(roles));
-  //   this.logger.log(`${users.length} users created`);
-  //   return users;
-  // } catch (error) {
-  //   this.logger.error('Error while seeding users', error);
-  // }
-  // }
+    try {
+      // 1. Seed Roles (no dependencies)
+      this.logger.log('1️⃣ Seeding roles...');
+      await this.rolesSeedService.seed();
 
-  private async roles() {
-    // try {
-    //   this.logger.log('Seeding roles...');
-    //   const roles = await Promise.all(this.roleSeeder.create());
-    //   this.logger.log(`${roles.length} roles created`);
-    //   return roles;
-    // } catch (error) {
-    //   this.logger.error('Error while seeding roles', error);
-    // }
+      // 2. Seed Buildings (no dependencies)
+      // this.logger.log('2️⃣ Seeding buildings...');
+      // await this.buildingsSeedService.seed();
+
+      // 3. Seed Room Types (no dependencies)
+      // this.logger.log('3️⃣ Seeding room types...');
+      // await this.roomTypesSeedService.seed();
+
+      // New Step: Seed Stakes (no dependencies)
+      this.logger.log('3.1️⃣ Seeding stakes...');
+      await this.stakesSeedService.seed();
+
+      // 4. Seed Floors (depends on buildings)
+      // this.logger.log('4️⃣ Seeding floors...');
+      // await this.floorsSeedService.seed();
+
+      // 5. Seed Rooms (depends on floors and room types)
+      // this.logger.log('5️⃣ Seeding rooms...');
+      // await this.roomsSeedService.seed();
+
+      // 6. Seed Users (depends on roles)
+      this.logger.log('6️⃣ Seeding users...');
+      await this.usersSeedService.seed();
+
+      // 7. Seed User-Room relationships (depends on users and rooms)
+      // this.logger.log('7️⃣ Seeding user-room assignments...');
+      // await this.userRoomsSeedService.seed();
+
+      this.logger.log('✅ All seeding completed successfully!');
+    } catch (error) {
+      this.logger.error('❌ Seeding process failed:', error);
+      throw error;
+    }
   }
 }

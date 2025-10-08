@@ -1,0 +1,114 @@
+import { BaseModel } from '@app/core/models/base.model';
+import { Role } from '@app/modules/roles/entities/role.entity';
+import { Stake } from '@app/modules/stakes/entities/stake.entity';
+import { UserRoom } from '@app/modules/user-rooms/entities/user-room.entity';
+import { InternalServerErrorException } from '@nestjs/common';
+import { compare, genSalt, hash } from 'bcryptjs';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToMany,
+  JoinTable,
+  OneToMany,
+  BeforeInsert,
+  BeforeUpdate,
+  ManyToOne,
+} from 'typeorm';
+
+@Entity({ name: 'users' })
+export class User extends BaseModel {
+  @Column()
+  firstName: string;
+
+  @Column({ nullable: true })
+  middleName?: string;
+
+  @Column()
+  paternalLastName: string;
+
+  @Column({ nullable: true })
+  maternalLastName?: string;
+
+  // @Column({ nullable: true, unique: true })
+  @Column({ nullable: true })
+  dni?: string;
+
+  @Column({ type: 'date', nullable: true })
+  birthDate?: Date;
+
+  @Column({ nullable: true })
+  gender?: string; // Male, Female, Other
+
+  @Column({ nullable: true })
+  phone?: string;
+
+  // @Column({ nullable: true, unique: true })
+  @Column({ nullable: true })
+  email?: string;
+
+  @Column({ nullable: false })
+  password: string;
+
+  @Column({ nullable: true })
+  address?: string;
+
+  @Column({ nullable: true })
+  region?: string;
+
+  @Column({ nullable: true })
+  department?: string;
+
+  @Column({ default: false })
+  hasArrived: boolean;
+
+  @Column({ nullable: true, type: 'text' })
+  medicalCondition?: string;
+
+  @Column({ nullable: true })
+  keyCode?: string;
+
+  @Column({ nullable: true })
+  ward?: string;
+
+  @ManyToOne(() => Stake, (stake) => stake.users)
+  stake?: Stake;
+
+  @Column({ nullable: true })
+  age?: string;
+
+  @Column({ default: true })
+  isMemberOfTheChurch?: boolean;
+
+  @Column({ nullable: true, type: 'text' })
+  notes?: string;
+
+  @ManyToMany(() => Role, (role) => role.users, { eager: true })
+  @JoinTable({
+    name: 'user_roles',
+    joinColumn: { name: 'user_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'role_id', referencedColumnName: 'id' },
+  })
+  roles: Role[];
+
+  @OneToMany(() => UserRoom, (userRoom) => userRoom.user)
+  userRooms: UserRoom[];
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  private async encryptPassword() {
+    try {
+      this.password = await hash(this.password, await genSalt(10));
+    } catch (e) {
+      throw new InternalServerErrorException('Error encrypting password');
+    }
+  }
+
+  public async validatePassword(password: string): Promise<boolean> {
+    try {
+      return await compare(password, this.password);
+    } catch (e) {
+      throw new InternalServerErrorException('Error validating password');
+    }
+  }
+}

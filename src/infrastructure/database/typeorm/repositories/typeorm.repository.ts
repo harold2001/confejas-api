@@ -50,7 +50,7 @@ export abstract class TypeOrmRepository<Entity extends BaseModel>
     };
   }
 
-  findById(id: number): Promise<Entity> {
+  findById(id: string): Promise<Entity> {
     return this.repository.findOne({
       where: {
         id: id,
@@ -75,14 +75,14 @@ export abstract class TypeOrmRepository<Entity extends BaseModel>
   }
 
   async update(
-    id: number,
+    id: string,
     entity: Entity | DeepPartial<Entity>,
   ): Promise<Entity> {
     const updatedEntity = await this.repository.preload({ id, ...entity });
     return this.repository.save(updatedEntity);
   }
 
-  async delete(id: number): Promise<Entity> {
+  async delete(id: string): Promise<Entity> {
     const entity = await this.repository.findOne({
       where: { id } as FindOptionsWhere<Entity>,
       relations: this.relations,
@@ -96,7 +96,7 @@ export abstract class TypeOrmRepository<Entity extends BaseModel>
     return entity;
   }
 
-  async softDelete(id: number): Promise<Entity> {
+  async softDelete(id: string): Promise<Entity> {
     const entity = await this.repository.findOne({
       where: { id } as FindOptionsWhere<Entity>,
       relations: this.relations,
