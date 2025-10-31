@@ -87,9 +87,11 @@ async function bootstrap() {
    */
   // app.use(StripeMiddleware.webHookMiddleware());
 
-  await app.listen(appConfig.port);
+  await app.listen(process.env.PORT || appConfig.port);
   logger.log(
-    `${appConfig.name} started on ${appConfig.hostName}:${appConfig.port}`,
+    `${appConfig.name} started on ${appConfig.hostName}:${
+      process.env.PORT || appConfig.port
+    }`,
   );
 }
 
