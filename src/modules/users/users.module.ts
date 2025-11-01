@@ -7,6 +7,7 @@ import { UserRepository } from './repositories/users.repository';
 import { RolesModule } from '../roles/roles.module';
 import { QrModule } from '@app/infrastructure/qr/qr.module';
 import { EmailModule } from '@app/infrastructure/email/email.module';
+import { StakesModule } from '../stakes/stakes.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { EmailModule } from '@app/infrastructure/email/email.module';
     RolesModule,
     QrModule,
     EmailModule,
+    StakesModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UserRepository],

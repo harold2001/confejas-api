@@ -9,6 +9,6 @@ import { Stake } from './entities/stake.entity';
   imports: [TypeOrmModule.forFeature([Stake])],
   controllers: [StakesController],
   providers: [StakesService, StakeRepository],
-  exports: [StakesService],
+  exports: [StakesService, StakeRepository],
 })
 export class StakesModule {}
