@@ -122,7 +122,7 @@ export class UsersSeedService {
   }
 
   private async importFromCSV(): Promise<User[]> {
-    const csvPath = path.join(__dirname, '../../../../../data.csv');
+    const csvPath = path.join(__dirname, '../../../../../data2.csv');
     const createdUsers: User[] = [];
 
     // Get the Participant role once
@@ -154,6 +154,8 @@ export class UsersSeedService {
               const edad = row['Edad']?.trim();
               const esMiembro = row['esMiembro']?.trim();
               const tallerPropuesto = row['tallerPropuesto']?.trim();
+              const telefono = row['Telefono']?.trim();
+              const correo = row['Correo']?.trim();
 
               // Skip if no name
               if (!nombre || !apellidos) {
@@ -174,6 +176,15 @@ export class UsersSeedService {
                   ? apellidosArray.slice(1).join(' ')
                   : '';
 
+              // Check if user already exists (by first name + last name combination)
+              const existingUser = await this.userRepository.findOne({
+                where: {
+                  firstName: firstName,
+                  paternalLastName: paternalLastName,
+                },
+                relations: ['stake'],
+              });
+
               // Find stake
               let stake = null;
               if (estacaName) {
@@ -193,18 +204,74 @@ export class UsersSeedService {
                 esMiembro?.toLowerCase() === 'si' ||
                 esMiembro?.toLowerCase() === 'sí';
 
-              // Check if user already exists (by first name + last name combination)
-              const existingUser = await this.userRepository.findOne({
-                where: {
-                  firstName: nombre,
-                  paternalLastName: paternalLastName,
-                },
-              });
-
               if (existingUser) {
-                this.logger.log(
-                  `User ${nombre} ${paternalLastName} already exists, skipping...`,
-                );
+                // Check if any fields need updating
+                let needsUpdate = false;
+                const updates: any = {};
+
+                if (middleName && middleName !== existingUser.middleName) {
+                  updates.middleName = middleName;
+                  needsUpdate = true;
+                }
+
+                if (
+                  maternalLastName &&
+                  maternalLastName !== existingUser.maternalLastName
+                ) {
+                  updates.maternalLastName = maternalLastName;
+                  needsUpdate = true;
+                }
+
+                if (barrio && barrio !== existingUser.ward) {
+                  updates.ward = barrio;
+                  needsUpdate = true;
+                }
+
+                if (edad && edad !== existingUser.age) {
+                  updates.age = edad;
+                  needsUpdate = true;
+                }
+
+                if (isMemberOfTheChurch !== existingUser.isMemberOfTheChurch) {
+                  updates.isMemberOfTheChurch = isMemberOfTheChurch;
+                  needsUpdate = true;
+                }
+
+                if (tallerPropuesto && tallerPropuesto !== existingUser.notes) {
+                  updates.notes = tallerPropuesto;
+                  needsUpdate = true;
+                }
+
+                if (stake && stake.id !== existingUser.stake?.id) {
+                  updates.stake = stake;
+                  needsUpdate = true;
+                }
+
+                if (telefono && telefono !== existingUser.phone) {
+                  updates.phone = telefono;
+                  needsUpdate = true;
+                }
+
+                if (correo && correo !== existingUser.email) {
+                  updates.email = correo;
+                  needsUpdate = true;
+                }
+
+                if (needsUpdate) {
+                  // Update the existing user
+                  Object.assign(existingUser, updates);
+                  const updatedUser =
+                    await this.userRepository.save(existingUser);
+                  createdUsers.push(updatedUser);
+                  this.logger.log(
+                    `🔄 Updated existing user: ${updatedUser.firstName} ${updatedUser.paternalLastName} - Changes: ${Object.keys(updates).join(', ')}`,
+                  );
+                } else {
+                  createdUsers.push(existingUser);
+                  this.logger.log(
+                    `✓ User ${nombre} ${paternalLastName} already up to date, skipping...`,
+                  );
+                }
                 continue;
               }
 
@@ -221,6 +288,8 @@ export class UsersSeedService {
                 password: this.DEFAULT_PASSWORD,
                 stake: stake,
                 roles: [participantRole],
+                phone: telefono || undefined,
+                email: correo || undefined,
               });
 
               const savedUser = await this.userRepository.save(user);
