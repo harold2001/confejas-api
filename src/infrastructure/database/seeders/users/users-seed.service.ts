@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Role } from '@app/modules/roles/entities/role.entity';
 import { Stake } from '@app/modules/stakes/entities/stake.entity';
@@ -179,8 +179,8 @@ export class UsersSeedService {
               // Check if user already exists (by first name + last name combination)
               const existingUser = await this.userRepository.findOne({
                 where: {
-                  firstName: firstName,
-                  paternalLastName: paternalLastName,
+                  firstName: ILike(firstName),
+                  paternalLastName: ILike(paternalLastName),
                 },
                 relations: ['stake'],
               });
