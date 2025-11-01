@@ -8,12 +8,14 @@ import { EmailService } from '@app/infrastructure/email/email.service';
 import { QrService } from '@app/infrastructure/qr/qr.service';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
+import { StakeRepository } from '../stakes/repositories/stakes.repository';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
+    private readonly stakeRepository: StakeRepository,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
   ) {}
@@ -53,10 +55,19 @@ export class UsersService {
       }),
     );
 
+    const stake = await this.stakeRepository.findById(userData.stakeId);
+
+    if (!stake) {
+      throw new NotFoundException(
+        `Stake with ID ${userData.stakeId} not found`,
+      );
+    }
+
     const user = await this.userRepository.create({
       ...userData,
       password: password,
       roles,
+      stake,
     });
     return user;
   }
