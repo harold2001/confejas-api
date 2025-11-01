@@ -106,6 +106,18 @@ export class UsersService {
       updateData.roles = roles;
     }
 
+    if (userData.stakeId) {
+      const stake = await this.stakeRepository.findById(userData.stakeId);
+
+      if (!stake) {
+        throw new NotFoundException(
+          `Stake with ID ${userData.stakeId} not found`,
+        );
+      }
+
+      updateData.stake = stake;
+    }
+
     return this.userRepository.update(id, updateData);
   }
 
