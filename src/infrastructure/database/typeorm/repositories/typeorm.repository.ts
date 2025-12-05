@@ -125,5 +125,5 @@ export abstract class TypeOrmRepository<Entity extends BaseModel>
 
   protected abstract parseFilters<FilterInput>(
     filters?: FilterInput,
-  ): FindOptionsWhere<Entity>;
+  ): FindOptionsWhere<Entity> | FindOptionsWhere<Entity>[];
 }

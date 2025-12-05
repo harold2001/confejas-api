@@ -9,6 +9,7 @@ import { QrService } from '@app/infrastructure/qr/qr.service';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { StakeRepository } from '../stakes/repositories/stakes.repository';
+import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
 
 @Injectable()
 export class UsersService {
@@ -31,13 +32,16 @@ export class UsersService {
     return { message: 'QR email sent' };
   }
 
-  async markAsArrived(id: string): Promise<User> {
+  async markAsArrived(
+    id: string,
+    markAsArrivedDto: MarkAsArrivedDto,
+  ): Promise<User> {
     const user = await this.userRepository.findById(id);
     if (!user) {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
 
-    user.hasArrived = !user.hasArrived;
+    user.hasArrived = markAsArrivedDto.hasArrived;
     return this.userRepository.update(id, user);
   }
 

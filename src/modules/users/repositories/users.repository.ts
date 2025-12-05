@@ -1,7 +1,7 @@
 import { GenericRepository } from '@core/abstracts/generic-repository';
 import { TypeOrmRepository } from '@infrastructure/database/typeorm/repositories';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, In, Repository } from 'typeorm';
+import { FindOptionsWhere, In, Repository, ILike } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { User } from '@app/modules/users/entities/user.entity';
 import { FilterUserDto } from '../dto/filter-user.dto';
@@ -20,7 +20,9 @@ export class UserRepository
     super(repository);
   }
 
-  protected parseFilters(filters?: FilterUserDto): FindOptionsWhere<User> {
+  protected parseFilters(
+    filters?: FilterUserDto,
+  ): FindOptionsWhere<User> | FindOptionsWhere<User>[] {
     const where: FindOptionsWhere<User> = {};
 
     if (filters?.email) {
@@ -52,6 +54,17 @@ export class UserRepository
       where.roles = {
         name: In(filters.roleNames),
       };
+    }
+
+    if (filters?.searchName) {
+      const searchPattern = `%${filters.searchName}%`;
+
+      return [
+        { ...where, firstName: ILike(searchPattern) },
+        { ...where, middleName: ILike(searchPattern) },
+        { ...where, paternalLastName: ILike(searchPattern) },
+        { ...where, maternalLastName: ILike(searchPattern) },
+      ];
     }
 
     return where;

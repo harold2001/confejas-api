@@ -1,4 +1,5 @@
 export class FilterUserDto {
+  searchName?: string;
   name?: string;
   email?: string;
   roleNames?: string[];

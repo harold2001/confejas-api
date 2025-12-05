@@ -37,9 +37,10 @@ const postgresConfig = (configService: ConfigService): TypeOrmModuleOptions => {
     entities: [User, Role, Room, UserRoom, Floor, RoomType, Building, Stake],
     // entities: [__dirname + '/../../modules/**/entities/*.entity{.ts,.js}'],
     migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    // ssl: {
+    //   rejectUnauthorized: false,
+    // },
+    ssl: false,
   };
 };
 
