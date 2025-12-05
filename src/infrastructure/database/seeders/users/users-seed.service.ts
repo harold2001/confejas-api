@@ -4,10 +4,12 @@ import { ILike, Repository } from 'typeorm';
 import { User } from '@app/modules/users/entities/user.entity';
 import { Role } from '@app/modules/roles/entities/role.entity';
 import { Stake } from '@app/modules/stakes/entities/stake.entity';
+import { Company } from '@app/modules/companies/entities/company.entity';
 import { usersData } from './users-seed.data';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as csvParser from 'csv-parser';
+import { UserRepository } from '@app/modules/users/repositories/users.repository';
 
 @Injectable()
 export class UsersSeedService {
@@ -21,6 +23,8 @@ export class UsersSeedService {
     private readonly roleRepository: Repository<Role>,
     @InjectRepository(Stake)
     private readonly stakeRepository: Repository<Stake>,
+    @InjectRepository(Company)
+    private readonly companyRepository: Repository<Company>,
   ) {}
 
   async seed(): Promise<User[]> {
@@ -36,14 +40,14 @@ export class UsersSeedService {
     }
 
     // Step 2: Import participants from CSV
-    this.logger.log('Importing participants from CSV...');
-    const csvUsers = await this.importFromCSV();
-    createdUsers.push(...csvUsers);
+    // this.logger.log('Importing participants from CSV...');
+    // const csvUsers = await this.importFromCSV();
+    // createdUsers.push(...csvUsers);
 
     this.logger.log(`Users seeding completed. Total: ${createdUsers.length}`);
-    this.logger.log(
-      `⚠️  All seeded users have the default password: "${this.DEFAULT_PASSWORD}"`,
-    );
+    // this.logger.log(
+    //   `⚠️  All seeded users have the default password: "${this.DEFAULT_PASSWORD}"`,
+    // );
     return createdUsers;
   }
 
@@ -74,6 +78,20 @@ export class UsersSeedService {
       }
     }
 
+    // Find company if provided
+    let company = null;
+    if (userData.companyName) {
+      company = await this.companyRepository.findOne({
+        where: { name: userData.companyName },
+      });
+
+      if (!company) {
+        this.logger.warn(
+          `Company '${userData.companyName}' not found for user ${userData.firstName} ${userData.paternalLastName}`,
+        );
+      }
+    }
+
     // Check if user already exists by email (if provided)
     if (userData.email) {
       const existingUser = await this.userRepository.findOne({
@@ -100,7 +118,6 @@ export class UsersSeedService {
       email: userData.email,
       password: this.DEFAULT_PASSWORD,
       address: userData.address,
-      region: userData.region,
       department: userData.department,
       medicalCondition: userData.medicalCondition,
       keyCode: userData.keyCode,
@@ -109,6 +126,7 @@ export class UsersSeedService {
       isMemberOfTheChurch: userData.isMemberOfTheChurch,
       notes: userData.notes,
       stake: stake,
+      company: company,
       roles: [role],
     });
 

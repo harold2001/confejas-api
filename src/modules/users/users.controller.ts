@@ -13,6 +13,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
+import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
 
 @Controller('users')
 export class UsersController {
@@ -41,8 +42,11 @@ export class UsersController {
   }
 
   @Put('/arrived/:id')
-  markAsArrived(@Param('id') id: string) {
-    return this.usersService.markAsArrived(id);
+  markAsArrived(
+    @Param('id') id: string,
+    @Body() markAsArrivedDto: MarkAsArrivedDto,
+  ) {
+    return this.usersService.markAsArrived(id, markAsArrivedDto);
   }
 
   @Patch(':id')

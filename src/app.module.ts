@@ -19,6 +19,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { QrModule } from './infrastructure/qr/qr.module';
 import { StakesModule } from './modules/stakes/stakes.module';
+import { CompaniesModule } from './modules/companies/companies.module';
 import configuration from './infrastructure/config/configuration';
 
 @Module({
@@ -40,6 +41,7 @@ import configuration from './infrastructure/config/configuration';
     AuthModule,
     QrModule,
     StakesModule,
+    CompaniesModule,
   ],
   controllers: [AppController],
   providers: [

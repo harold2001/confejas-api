@@ -2,6 +2,7 @@ import { BaseModel } from '@app/core/models/base.model';
 import { Role } from '@app/modules/roles/entities/role.entity';
 import { Stake } from '@app/modules/stakes/entities/stake.entity';
 import { UserRoom } from '@app/modules/user-rooms/entities/user-room.entity';
+import { Company } from '@app/modules/companies/entities/company.entity';
 import { InternalServerErrorException } from '@nestjs/common';
 import { compare, genSalt, hash } from 'bcryptjs';
 import {
@@ -18,33 +19,31 @@ import {
 
 @Entity({ name: 'users' })
 export class User extends BaseModel {
-  @Column()
+  @Column({ nullable: false })
   firstName: string;
 
   @Column({ nullable: true })
   middleName?: string;
 
-  @Column()
+  @Column({ nullable: false })
   paternalLastName: string;
 
   @Column({ nullable: true })
   maternalLastName?: string;
 
-  // @Column({ nullable: true, unique: true })
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   dni?: string;
 
   @Column({ type: 'date', nullable: true })
   birthDate?: Date;
 
   @Column({ nullable: true })
-  gender?: string; // Male, Female, Other
+  gender?: string;
 
   @Column({ nullable: true })
   phone?: string;
 
-  // @Column({ nullable: true, unique: true })
-  @Column({ nullable: true })
+  @Column({ nullable: true, unique: true })
   email?: string;
 
   @Column({ nullable: false })
@@ -52,9 +51,6 @@ export class User extends BaseModel {
 
   @Column({ nullable: true })
   address?: string;
-
-  @Column({ nullable: true })
-  region?: string;
 
   @Column({ nullable: true })
   department?: string;
@@ -73,6 +69,9 @@ export class User extends BaseModel {
 
   @ManyToOne(() => Stake, (stake) => stake.users)
   stake?: Stake;
+
+  @ManyToOne(() => Company, (company) => company.users)
+  company?: Company;
 
   @Column({ nullable: true })
   age?: string;

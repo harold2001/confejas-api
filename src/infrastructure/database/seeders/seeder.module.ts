@@ -14,6 +14,8 @@ import { Floor } from '@app/modules/floors/entities/floor.entity';
 import { Room } from '@app/modules/rooms/entities/room.entity';
 import { RoomType } from '@app/modules/room-types/entities/room-type.entity';
 import { UserRoom } from '@app/modules/user-rooms/entities/user-room.entity';
+import { Stake } from '@app/modules/stakes/entities/stake.entity';
+import { Company } from '@app/modules/companies/entities/company.entity';
 import { RoleSeedModule } from './roles/roles-seed.module';
 import { BuildingSeedModule } from './buildings/buildings-seed.module';
 import { RoomTypeSeedModule } from './room-types/room-types-seed.module';
@@ -22,7 +24,7 @@ import { RoomSeedModule } from './rooms/rooms-seed.module';
 import { UserSeedModule } from './users/users-seed.module';
 import { UserRoomSeedModule } from './user-rooms/user-rooms-seed.module';
 import { StakesSeedModule } from './stakes/stakes-seed.module';
-import { Stake } from '@app/modules/stakes/entities/stake.entity';
+import { CompaniesSeedModule } from './companies/companies-seed.module';
 
 @Module({
   imports: [
@@ -42,15 +44,17 @@ import { Stake } from '@app/modules/stakes/entities/stake.entity';
       RoomType,
       UserRoom,
       Stake,
+      Company,
     ]),
     RoleSeedModule,
     BuildingSeedModule,
     RoomTypeSeedModule,
     FloorSeedModule,
     RoomSeedModule,
+    StakesSeedModule,
+    CompaniesSeedModule,
     UserSeedModule,
     UserRoomSeedModule,
-    StakesSeedModule,
   ],
   providers: [Seeder, Logger],
   exports: [Seeder],
