@@ -34,12 +34,12 @@ export class Seeder {
       await this.rolesSeedService.seed();
 
       // 2. Seed Buildings (no dependencies)
-      this.logger.log('2️⃣ Seeding buildings...');
-      await this.buildingsSeedService.seed();
+      // this.logger.log('2️⃣ Seeding buildings...');
+      // await this.buildingsSeedService.seed();
 
       // 3. Seed Room Types (no dependencies)
-      this.logger.log('3️⃣ Seeding room types...');
-      await this.roomTypesSeedService.seed();
+      // this.logger.log('3️⃣ Seeding room types...');
+      // await this.roomTypesSeedService.seed();
 
       // New Step: Seed Stakes (no dependencies)
       this.logger.log('3.1️⃣ Seeding stakes...');
@@ -50,12 +50,12 @@ export class Seeder {
       await this.companiesSeedService.seed();
 
       // 4. Seed Floors (depends on buildings)
-      this.logger.log('4️⃣ Seeding floors...');
-      await this.floorsSeedService.seed();
+      // this.logger.log('4️⃣ Seeding floors...');
+      // await this.floorsSeedService.seed();
 
       // 5. Seed Rooms (depends on floors and room types)
-      this.logger.log('5️⃣ Seeding rooms...');
-      await this.roomsSeedService.seed();
+      // this.logger.log('5️⃣ Seeding rooms...');
+      // await this.roomsSeedService.seed();
 
       // 6. Seed Users (depends on roles)
       this.logger.log('6️⃣ Seeding users...');

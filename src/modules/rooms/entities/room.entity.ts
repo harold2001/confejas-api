@@ -9,14 +9,20 @@ export class Room extends BaseModel {
   @Column({ unique: true })
   roomNumber: string;
 
-  @ManyToOne(() => RoomType, (roomType) => roomType.rooms, { eager: true })
-  roomType: RoomType;
+  @ManyToOne(() => RoomType, (roomType) => roomType.rooms, {
+    eager: true,
+    nullable: true,
+  })
+  roomType?: RoomType;
 
-  @ManyToOne(() => Floor, (floor) => floor.rooms, { onDelete: 'CASCADE' })
-  floor: Floor;
+  @ManyToOne(() => Floor, (floor) => floor.rooms, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  floor?: Floor;
 
-  @Column({ type: 'int', default: 1 })
-  totalBeds: number;
+  @Column({ type: 'int', nullable: true })
+  totalBeds?: number;
 
   @OneToMany(() => UserRoom, (userRoom) => userRoom.room)
   userRooms: UserRoom[];

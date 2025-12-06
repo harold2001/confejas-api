@@ -22,6 +22,10 @@ export class StakeRepository
   protected parseFilters(filters?: any): FindOptionsWhere<Stake> {
     const where: FindOptionsWhere<Stake> = {};
 
+    if (filters?.name) {
+      where.name = filters.name;
+    }
+
     return where;
   }
 }

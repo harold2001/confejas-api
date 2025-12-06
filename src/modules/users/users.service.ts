@@ -1,4 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from '@app/modules/users/entities/user.entity';
@@ -10,6 +17,10 @@ import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { StakeRepository } from '../stakes/repositories/stakes.repository';
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
+import { DataSource } from 'typeorm';
+import { UserStatus } from '@app/core/enums/user-status';
+import { PermutaUserDto } from './dto/permuta-user.dto';
+import { Gender } from '@app/core/enums/gender';
 
 @Injectable()
 export class UsersService {
@@ -19,17 +30,85 @@ export class UsersService {
     private readonly stakeRepository: StakeRepository,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
+    private readonly dataSource: DataSource,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
-  // TODO: Traer todos los usuarios y enviarles el QR por email
   async sendQr() {
-    const { qrBase64 } = await this.qrService.generateUserQr(
-      'da0742fc-1c05-49ff-a14f-ed87c785ea2d',
+    // Get all users with Participant role, valid email, and hasArrived = false
+    const allUsers = await this.userRepository.findAll();
+    const usersToSend = allUsers.filter(
+      (user) =>
+        user.roles?.some((role) => role.name === 'Participant') &&
+        user.email &&
+        user.email.trim() !== '' &&
+        !user.hasArrived,
     );
 
-    await this.emailService.sendQrEmail('hcarazasnires@gmail.com', qrBase64);
+    if (usersToSend.length === 0) {
+      return {
+        success: true,
+        message: 'No hay usuarios pendientes para enviar QR',
+        totalUsers: 0,
+        successCount: 0,
+        failedCount: 0,
+        failed: [],
+      };
+    }
 
-    return { message: 'QR email sent' };
+    const webAppUrl = this.configService.get<string>('web.url');
+    const batchSize = 100;
+    const delayBetweenBatches = 1000; // 1 second
+
+    let successCount = 0;
+    let failedCount = 0;
+    const failedUsers: Array<{ email: string; error: string }> = [];
+
+    // Process in batches of 100
+    for (let i = 0; i < usersToSend.length; i += batchSize) {
+      const batch = usersToSend.slice(i, i + batchSize);
+
+      // Send emails in current batch
+      await Promise.all(
+        batch.map(async (user) => {
+          try {
+            // Generate attendance token
+            const token = this.generateAttendanceToken(user.id);
+            const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
+
+            // Generate QR code
+            const { qrBase64 } = await this.qrService.generateUserQr(qrUrl);
+
+            // Send email
+            await this.emailService.sendQrEmail(user.email, qrBase64);
+            successCount++;
+          } catch (error) {
+            failedCount++;
+            failedUsers.push({
+              email: user.email,
+              error: error.message || 'Error desconocido',
+            });
+          }
+        }),
+      );
+
+      // Delay between batches (except for the last batch)
+      if (i + batchSize < usersToSend.length) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, delayBetweenBatches),
+        );
+      }
+    }
+
+    return {
+      success: true,
+      message: `Proceso de envío completado. ${successCount} correos enviados exitosamente, ${failedCount} fallidos.`,
+      totalUsers: usersToSend.length,
+      successCount,
+      failedCount,
+      failed: failedUsers,
+    };
   }
 
   async markAsArrived(
@@ -73,7 +152,22 @@ export class UsersService {
       roles,
       stake,
     });
+
+    // Generate attendance token (valid for 1 week)
+    const attendanceToken = this.generateAttendanceToken(user.id);
+    console.log(`Attendance token for user ${user.id}: ${attendanceToken}`);
+
     return user;
+  }
+
+  private generateAttendanceToken(userId: string): string {
+    return this.jwtService.sign(
+      { userId },
+      {
+        secret: this.configService.get<string>('app.jwtSecret'),
+        expiresIn: '7d', // 1 week
+      },
+    );
   }
 
   async findAll(): Promise<User[]> {
@@ -89,6 +183,23 @@ export class UsersService {
 
   async findOne(id: string): Promise<User> {
     return this.userRepository.findById(id);
+  }
+
+  async getAttendanceToken(
+    userId: string,
+  ): Promise<{ token: string; qrUrl: string }> {
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const token = this.generateAttendanceToken(userId);
+    const frontendUrl =
+      this.configService.get<string>('app.frontendUrl') ||
+      'http://localhost:8100';
+    const qrUrl = `${frontendUrl}/attendance/verify/${token}`;
+
+    return { token, qrUrl };
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
@@ -127,5 +238,326 @@ export class UsersService {
 
   async remove(id: string): Promise<User> {
     return this.userRepository.delete(id);
+  }
+
+  async permutaUser(permutaUserDto: PermutaUserDto): Promise<User> {
+    const { originalUserId, roleIds, password, stakeId, ...newUserData } =
+      permutaUserDto;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    try {
+      // 1. Buscar usuario original
+      const originalUser = await queryRunner.manager.findOne(User, {
+        where: { id: originalUserId },
+        relations: ['replacedBy'],
+      });
+
+      if (!originalUser) {
+        throw new NotFoundException(
+          `Usuario original con ID ${originalUserId} no encontrado`,
+        );
+      }
+
+      if (originalUser.replacedBy) {
+        throw new BadRequestException(
+          `El usuario ${originalUser.firstName} ${originalUser.paternalLastName} ya fue reemplazado anteriormente`,
+        );
+      }
+
+      // 2. Buscar roles para el nuevo usuario
+      const roles = await Promise.all(
+        roleIds.map(async (roleId) => {
+          const role = await this.roleRepository.findById(roleId);
+          if (!role) {
+            throw new NotFoundException(`Role con ID ${roleId} no encontrado`);
+          }
+          return role;
+        }),
+      );
+
+      // 3. Buscar stake si se proporciona
+      let stake = null;
+      if (stakeId) {
+        stake = await this.stakeRepository.findById(stakeId);
+        if (!stake) {
+          throw new NotFoundException(`Stake con ID ${stakeId} no encontrado`);
+        }
+      }
+
+      // 4. Crear el nuevo usuario (Usuario B) - NO hereda nada del Usuario A
+      const newUser = queryRunner.manager.create(User, {
+        ...newUserData,
+        password: password,
+        roles,
+        stake,
+        hasArrived: false,
+      });
+
+      const savedNewUser = await queryRunner.manager.save(User, newUser);
+
+      // 5. Actualizar el usuario original (Usuario A)
+      originalUser.hasArrived = false;
+      originalUser.status = UserStatus.REPLACED;
+      originalUser.replacedBy = savedNewUser;
+
+      await queryRunner.manager.save(User, originalUser);
+
+      // 6. Confirmar transacción
+      await queryRunner.commitTransaction();
+
+      return savedNewUser;
+    } catch (error) {
+      // Revertir transacción en caso de error
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      // Liberar conexión
+      await queryRunner.release();
+    }
+  }
+
+  async verifyAttendance(token: string) {
+    try {
+      // Verify JWT token
+      const payload = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('app.jwtSecret'),
+      });
+
+      // Get user by ID from token
+      const user = await this.userRepository.findById(payload.userId);
+
+      if (!user) {
+        throw new NotFoundException('Usuario no encontrado');
+      }
+
+      // Mark attendance as true (always true, can be scanned multiple times)
+      user.hasArrived = true;
+      await this.userRepository.update(user.id, user);
+
+      // Return user information
+      return {
+        success: true,
+        message: 'Asistencia confirmada exitosamente',
+        user: {
+          id: user.id,
+          firstName: user.firstName,
+          middleName: user.middleName,
+          paternalLastName: user.paternalLastName,
+          maternalLastName: user.maternalLastName,
+          company: user.company,
+          userRooms: user.userRooms,
+          hasArrived: user.hasArrived,
+        },
+      };
+    } catch (error) {
+      if (error.name === 'TokenExpiredError') {
+        throw new UnauthorizedException('El código QR ha expirado');
+      }
+      if (error.name === 'JsonWebTokenError') {
+        throw new UnauthorizedException('Código QR inválido');
+      }
+      if (error instanceof NotFoundException) {
+        throw error;
+      }
+      throw new BadRequestException(
+        'Error al verificar la asistencia. Por favor, intente nuevamente.',
+      );
+    }
+  }
+
+  async getStatistics() {
+    // Get all users with relations
+    const allUsers = await this.userRepository.findAll();
+
+    // Filter only users with "Participante" role
+    const users = allUsers.filter((user) =>
+      user.roles?.some((role) => role.name === 'Participant'),
+    );
+
+    // Total users
+    const totalUsers = users.length;
+
+    // Arrival statistics
+    const usersArrived = users.filter((u) => u.hasArrived).length;
+    const usersNotArrived = totalUsers - usersArrived;
+
+    // Gender statistics
+    const maleCount = users.filter((u) => u.gender === Gender.MALE).length;
+    const femaleCount = users.filter((u) => u.gender === Gender.FEMALE).length;
+
+    // Church membership
+    const churchMembersCount = users.filter(
+      (u) => u.isMemberOfTheChurch === true,
+    ).length;
+    const nonChurchMembersCount = totalUsers - churchMembersCount;
+
+    // User status
+    const activeUsers = users.filter(
+      (u) => !u.status || u.status !== UserStatus.REPLACED,
+    ).length;
+    const replacedUsers = users.filter(
+      (u) => u.status === UserStatus.REPLACED,
+    ).length;
+
+    // Medical statistics
+    const usersWithMedicalCondition = users.filter((u) => {
+      if (!u.medicalCondition || u.medicalCondition.trim() === '') return false;
+      const condition = u.medicalCondition.toLowerCase().trim();
+      // Exclude common "no" responses
+      if (
+        condition.includes('no') ||
+        condition.includes('ninguna') ||
+        condition.includes('ningúna') ||
+        condition === '-' ||
+        condition === '--' ||
+        condition.includes('no tiene') ||
+        condition.includes('no tengo')
+      ) {
+        return false;
+      }
+      return true;
+    }).length;
+
+    const usersWithMedicalTreatment = users.filter((u) => {
+      if (!u.medicalTreatment || u.medicalTreatment.trim() === '') return false;
+      const treatment = u.medicalTreatment.toLowerCase().trim();
+      // Exclude common "no" responses
+      if (
+        treatment.includes('no') ||
+        treatment.includes('ninguna') ||
+        treatment.includes('ningúna') ||
+        treatment === '-' ||
+        treatment === '--' ||
+        treatment === 'mot' ||
+        treatment.includes('no tiene') ||
+        treatment.includes('no tengo')
+      ) {
+        return false;
+      }
+      return true;
+    }).length;
+
+    // Blood type statistics
+    const bloodTypeMap = new Map<string, number>();
+    users.forEach((u) => {
+      if (u.bloodType && u.bloodType.trim() !== '') {
+        const type = u.bloodType.trim();
+        bloodTypeMap.set(type, (bloodTypeMap.get(type) || 0) + 1);
+      }
+    });
+    const bloodTypeStatistics = Array.from(bloodTypeMap.entries()).map(
+      ([type, count]) => ({ type, count }),
+    );
+
+    // Shirt size statistics
+    const shirtSizeMap = new Map<string, number>();
+    users.forEach((u) => {
+      if (u.shirtSize && u.shirtSize.trim() !== '') {
+        const size = u.shirtSize.trim();
+        shirtSizeMap.set(size, (shirtSizeMap.get(size) || 0) + 1);
+      }
+    });
+    const shirtSizeStatistics = Array.from(shirtSizeMap.entries()).map(
+      ([size, count]) => ({ size, count }),
+    );
+
+    // Age range statistics (18-35 years, ranges of ~3 years)
+    const ageRanges = [
+      { range: '18-20', min: 18, max: 20 },
+      { range: '21-23', min: 21, max: 23 },
+      { range: '24-26', min: 24, max: 26 },
+      { range: '27-29', min: 27, max: 29 },
+      { range: '30-32', min: 30, max: 32 },
+      { range: '33-35', min: 33, max: 35 },
+    ];
+
+    const ageRangeStatistics = ageRanges.map((range) => {
+      const count = users.filter((u) => {
+        if (!u.age) return false;
+        const age = parseInt(u.age);
+        return age >= range.min && age <= range.max;
+      }).length;
+      return { range: range.range, count };
+    });
+
+    // Average age
+    const usersWithAge = users.filter((u) => u.age && !isNaN(parseInt(u.age)));
+    const averageAge =
+      usersWithAge.length > 0
+        ? usersWithAge.reduce((sum, u) => sum + parseInt(u.age), 0) /
+          usersWithAge.length
+        : 0;
+
+    // Company statistics
+    const companyMap = new Map<string, any>();
+    users.forEach((u) => {
+      if (u.company) {
+        if (!companyMap.has(u.company.id)) {
+          companyMap.set(u.company.id, {
+            companyId: u.company.id,
+            companyName: u.company.name,
+            userCount: 0,
+            users: [],
+          });
+        }
+        const companyData = companyMap.get(u.company.id);
+        companyData.userCount++;
+        companyData.users.push({
+          id: u.id,
+          firstName: u.firstName,
+          paternalLastName: u.paternalLastName,
+          maternalLastName: u.maternalLastName,
+        });
+      }
+    });
+    const companyStatistics = Array.from(companyMap.values());
+
+    // Stake statistics
+    const stakeMap = new Map<string, any>();
+    users.forEach((u) => {
+      if (u.stake) {
+        if (!stakeMap.has(u.stake.id)) {
+          stakeMap.set(u.stake.id, {
+            stakeId: u.stake.id,
+            stakeName: u.stake.name,
+            userCount: 0,
+            churchMembersCount: 0,
+            maleCount: 0,
+            femaleCount: 0,
+            arrivedCount: 0,
+          });
+        }
+        const stakeData = stakeMap.get(u.stake.id);
+        stakeData.userCount++;
+        if (u.isMemberOfTheChurch) stakeData.churchMembersCount++;
+        if (u.gender === Gender.MALE) stakeData.maleCount++;
+        if (u.gender === Gender.FEMALE) stakeData.femaleCount++;
+        if (u.hasArrived) stakeData.arrivedCount++;
+      }
+    });
+    const stakeStatistics = Array.from(stakeMap.values());
+
+    return {
+      totalUsers,
+      usersArrived,
+      usersNotArrived,
+      maleCount,
+      femaleCount,
+      churchMembersCount,
+      nonChurchMembersCount,
+      activeUsers,
+      replacedUsers,
+      usersWithMedicalCondition,
+      usersWithMedicalTreatment,
+      bloodTypeStatistics,
+      shirtSizeStatistics,
+      ageRangeStatistics,
+      averageAge: Math.round(averageAge * 10) / 10, // Round to 1 decimal
+      companyStatistics,
+      stakeStatistics,
+    };
   }
 }

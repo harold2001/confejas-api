@@ -8,6 +8,7 @@ import { RolesModule } from '../roles/roles.module';
 import { QrModule } from '@app/infrastructure/qr/qr.module';
 import { EmailModule } from '@app/infrastructure/email/email.module';
 import { StakesModule } from '../stakes/stakes.module';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { StakesModule } from '../stakes/stakes.module';
     StakesModule,
   ],
   controllers: [UsersController],
-  providers: [UsersService, UserRepository],
+  providers: [UsersService, UserRepository, JwtService],
   exports: [UserRepository],
 })
 export class UsersModule {}
