@@ -31,3 +31,9 @@ export const getGenderFromString = (gender: string): Gender | null => {
       return null;
   }
 };
+
+export const cleanValue = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  return trimmed === '#ERROR!' || trimmed === '' ? undefined : trimmed;
+};
