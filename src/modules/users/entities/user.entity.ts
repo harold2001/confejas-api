@@ -16,6 +16,8 @@ import {
   BeforeUpdate,
   ManyToOne,
 } from 'typeorm';
+import { UserStatus } from '@app/core/enums/user-status';
+import { Gender } from '@app/core/enums/gender';
 
 @Entity({ name: 'users' })
 export class User extends BaseModel {
@@ -34,16 +36,16 @@ export class User extends BaseModel {
   @Column({ nullable: true, unique: true })
   dni?: string;
 
-  @Column({ type: 'date', nullable: true })
-  birthDate?: Date;
+  @Column({ type: 'varchar', nullable: true })
+  birthDate?: string;
 
-  @Column({ nullable: true })
-  gender?: string;
+  @Column({ nullable: true, type: 'enum', enum: Gender })
+  gender?: Gender;
 
   @Column({ nullable: true })
   phone?: string;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ nullable: true })
   email?: string;
 
   @Column({ nullable: false })
@@ -60,6 +62,9 @@ export class User extends BaseModel {
 
   @Column({ nullable: true, type: 'text' })
   medicalCondition?: string;
+
+  @Column({ nullable: true, type: 'text' })
+  medicalTreatment?: string;
 
   @Column({ nullable: true })
   keyCode?: string;
@@ -82,6 +87,24 @@ export class User extends BaseModel {
   @Column({ nullable: true, type: 'text' })
   notes?: string;
 
+  @Column({ nullable: true, type: 'enum', enum: UserStatus })
+  status?: UserStatus;
+
+  @Column({ nullable: true, type: 'varchar' })
+  shirtSize?: string;
+
+  @Column({ nullable: true, type: 'varchar' })
+  bloodType?: string;
+
+  @Column({ nullable: true, type: 'varchar' })
+  healthInsurance?: string;
+
+  @Column({ nullable: true, type: 'varchar' })
+  emergencyContactName?: string;
+
+  @Column({ nullable: true, type: 'varchar' })
+  emergencyContactPhone?: string;
+
   @ManyToMany(() => Role, (role) => role.users, { eager: true })
   @JoinTable({
     name: 'user_roles',
@@ -92,6 +115,9 @@ export class User extends BaseModel {
 
   @OneToMany(() => UserRoom, (userRoom) => userRoom.user)
   userRooms: UserRoom[];
+
+  @ManyToOne(() => User, { nullable: true })
+  replacedBy?: User;
 
   @BeforeInsert()
   @BeforeUpdate()

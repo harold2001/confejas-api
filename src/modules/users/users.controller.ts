@@ -14,6 +14,10 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
+import { PermutaUserDto } from './dto/permuta-user.dto';
+import { VerifyAttendanceDto } from './dto/verify-attendance.dto';
+import { Roles } from '@app/core/decorators/roles.decorator';
+import { AppRole } from '@app/core/enums/roles';
 
 @Controller('users')
 export class UsersController {
@@ -29,6 +33,11 @@ export class UsersController {
     return this.usersService.findAll();
   }
 
+  @Get('statistics')
+  getStatistics() {
+    return this.usersService.getStatistics();
+  }
+
   @Post('filter')
   findAllPaginated(
     @Body() body: { pagination: PaginationDto; filters: FilterUserDto },
@@ -39,6 +48,11 @@ export class UsersController {
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Get(':id/attendance-token')
+  getAttendanceToken(@Param('id') id: string) {
+    return this.usersService.getAttendanceToken(id);
   }
 
   @Put('/arrived/:id')
@@ -59,9 +73,20 @@ export class UsersController {
     return this.usersService.remove(id);
   }
 
-  // @Public()
-  // @Post('test-email')
-  // testEmail() {
-  //   return this.usersService.sendQr();
-  // }
+  @Roles(AppRole.Admin, AppRole.Staff)
+  @Post('verify-attendance')
+  verifyAttendance(@Body() verifyAttendanceDto: VerifyAttendanceDto) {
+    return this.usersService.verifyAttendance(verifyAttendanceDto.token);
+  }
+
+  @Roles(AppRole.Admin)
+  @Post('send-qr')
+  sendQr() {
+    return this.usersService.sendQr();
+  }
+
+  @Post('permuta')
+  permutaUser(@Body() permutaUserDto: PermutaUserDto) {
+    return this.usersService.permutaUser(permutaUserDto);
+  }
 }

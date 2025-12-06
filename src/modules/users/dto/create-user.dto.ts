@@ -10,8 +10,11 @@ import {
   MinLength,
   IsArray,
   ArrayMinSize,
+  Length,
+  ValidateIf,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Gender } from '@app/core/enums/gender';
 
 export class CreateUserDto {
   @ApiProperty({
@@ -53,32 +56,32 @@ export class CreateUserDto {
   maternalLastName?: string;
 
   @ApiProperty({
-    description: 'DNI (Documento Nacional de Identidad)',
+    description: 'DNI (Documento Nacional de Identidad) - 8 digits',
     example: '72767381',
+    required: false,
   })
-  @IsString()
   @IsOptional()
-  @MaxLength(20)
-  dni: string;
+  @ValidateIf((o) => o.dni && o.dni.length > 0)
+  @IsString()
+  @Length(8, 8, { message: 'DNI debe tener exactamente 8 dígitos' })
+  dni?: string;
 
   @ApiProperty({
     description: 'Birth date',
     example: '1999-10-07',
     required: false,
   })
-  @IsDateString()
+  @IsString()
   @IsOptional()
-  birthDate?: Date;
+  birthDate?: string;
 
   @ApiProperty({
     description: 'Gender',
     example: 'Female',
     required: false,
   })
-  @IsString()
   @IsOptional()
-  @MaxLength(50)
-  gender?: string;
+  gender?: Gender;
 
   @ApiProperty({
     description: 'Phone number',
@@ -100,6 +103,15 @@ export class CreateUserDto {
   email?: string;
 
   @ApiProperty({
+    description: 'Password for user authentication',
+    example: 'SecurePassword123!',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(6)
+  password: string;
+
+  @ApiProperty({
     description: 'Physical address',
     example: 'Mz I lote 33 urb. San Diego',
     required: false,
@@ -108,16 +120,6 @@ export class CreateUserDto {
   @IsOptional()
   @MaxLength(255)
   address?: string;
-
-  @ApiProperty({
-    description: 'Region',
-    example: 'Lima',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  @MaxLength(100)
-  region?: string;
 
   @ApiProperty({
     description: 'Department',
@@ -148,6 +150,15 @@ export class CreateUserDto {
   medicalCondition?: string;
 
   @ApiProperty({
+    description: 'Medical treatment',
+    example: 'Insulina',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  medicalTreatment?: string;
+
+  @ApiProperty({
     description: 'Key code',
     example: 'KEY001',
     required: false,
@@ -158,13 +169,91 @@ export class CreateUserDto {
   keyCode?: string;
 
   @ApiProperty({
-    description: 'Password for user authentication',
-    example: 'SecurePassword123!',
+    description: 'Ward (Barrio)',
+    example: 'San Juan',
+    required: false,
   })
   @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  password: string;
+  @IsOptional()
+  @MaxLength(100)
+  ward?: string;
+
+  @ApiProperty({
+    description: 'Age',
+    example: '25',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  age?: string;
+
+  @ApiProperty({
+    description: 'Is member of the church',
+    example: true,
+    default: true,
+  })
+  @IsBoolean()
+  @IsOptional()
+  isMemberOfTheChurch?: boolean;
+
+  @ApiProperty({
+    description: 'Notes',
+    example: 'Taller de fotografía',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @ApiProperty({
+    description: 'Shirt size',
+    example: 'M',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  shirtSize?: string;
+
+  @ApiProperty({
+    description: 'Blood type',
+    example: 'O+',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(10)
+  bloodType?: string;
+
+  @ApiProperty({
+    description: 'Health insurance',
+    example: 'EsSalud',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  healthInsurance?: string;
+
+  @ApiProperty({
+    description: 'Emergency contact name',
+    example: 'María Aguinaga',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  emergencyContactName?: string;
+
+  @ApiProperty({
+    description: 'Emergency contact phone',
+    example: '987654321',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(20)
+  emergencyContactPhone?: string;
 
   @ApiProperty({
     description: 'Array of Role IDs - Users can have multiple roles',
@@ -176,6 +265,11 @@ export class CreateUserDto {
   @IsUUID('4', { each: true })
   roleIds: string[];
 
+  @ApiProperty({
+    description: 'Stake ID',
+    example: 'uuid-string',
+    required: false,
+  })
   @IsOptional()
   @IsUUID()
   stakeId?: string;

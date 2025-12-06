@@ -25,6 +25,14 @@ import { UserSeedModule } from './users/users-seed.module';
 import { UserRoomSeedModule } from './user-rooms/user-rooms-seed.module';
 import { StakesSeedModule } from './stakes/stakes-seed.module';
 import { CompaniesSeedModule } from './companies/companies-seed.module';
+import { UsersModule } from '@app/modules/users/users.module';
+import { RolesModule } from '@app/modules/roles/roles.module';
+import { StakesModule } from '@app/modules/stakes/stakes.module';
+import { CompaniesModule } from '@app/modules/companies/companies.module';
+import { UserRepository } from '@app/modules/users/repositories/users.repository';
+import { RoleRepository } from '@app/modules/roles/repositories/roles.repository';
+import { StakeRepository } from '@app/modules/stakes/repositories/stakes.repository';
+import { CompanyRepository } from '@app/modules/companies/repositories/companies.repository';
 
 @Module({
   imports: [
@@ -55,8 +63,19 @@ import { CompaniesSeedModule } from './companies/companies-seed.module';
     CompaniesSeedModule,
     UserSeedModule,
     UserRoomSeedModule,
+    UsersModule,
+    RolesModule,
+    StakesModule,
+    CompaniesModule,
   ],
-  providers: [Seeder, Logger],
+  providers: [
+    Seeder,
+    Logger,
+    UserRepository,
+    RoleRepository,
+    StakeRepository,
+    CompanyRepository,
+  ],
   exports: [Seeder],
 })
 export class SeederModule {}

@@ -1,19 +1,19 @@
 // Companies data - Groups of participants and counselors
 export const companiesData = [
   {
-    name: 'Compañía Alfa',
-    description: 'Grupo de jóvenes enfocados en talleres de música y arte',
+    name: 'Compañía 1',
+    description: '',
   },
   {
-    name: 'Compañía Beta',
-    description: 'Grupo de jóvenes enfocados en deportes y actividades físicas',
+    name: 'Compañía 2',
+    description: '',
   },
   {
-    name: 'Compañía Gamma',
-    description: 'Grupo de jóvenes enfocados en tecnología y programación',
+    name: 'Compañía 3',
+    description: '',
   },
   {
-    name: 'Compañía Delta',
-    description: 'Grupo de jóvenes enfocados en liderazgo y emprendimiento',
+    name: 'Compañía 4',
+    description: '',
   },
 ];

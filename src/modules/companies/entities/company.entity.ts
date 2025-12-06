@@ -7,6 +7,9 @@ export class Company extends BaseModel {
   @Column({ nullable: false, unique: true })
   name: string;
 
+  @Column({ nullable: false, type: 'int', unique: true })
+  number: number;
+
   @Column({ nullable: true, type: 'text' })
   description?: string;
 
