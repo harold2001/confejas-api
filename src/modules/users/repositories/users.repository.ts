@@ -25,6 +25,8 @@ export class UserRepository
     'company',
     'userRooms',
     'userRooms.room',
+    'userRooms.room.floor',
+    'userRooms.room.floor.building',
     'replacedBy',
   ];
   protected paginatedRelations: string[] = [
@@ -33,6 +35,8 @@ export class UserRepository
     'company',
     'userRooms',
     'userRooms.room',
+    'userRooms.room.floor',
+    'userRooms.room.floor.building',
     'replacedBy',
   ];
 

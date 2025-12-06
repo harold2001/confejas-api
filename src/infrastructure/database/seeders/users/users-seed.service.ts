@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as csvParser from 'csv-parser';
 import {
+  cleanValue,
   getGenderFromString,
   getUserStatusFromString,
 } from '@app/core/utils/helpers';
@@ -173,45 +174,68 @@ export class UsersSeedService {
           for (const row of results) {
             try {
               // Parse CSV columns
-              const firstName = row['Primer Nombre']?.trim();
-              const middleName = row['Segundo Nombre']?.trim();
-              const paternalLastName = row['Primer Apellido']?.trim();
-              const maternalLastName = row['Segundo Apellido']?.trim();
-              const stakeName = row['Estaca']?.trim();
-              const wardName = row['Barrio']?.trim();
-              const status = row['Estado']?.trim();
-              const companyNumber = row['Compañias']?.trim();
-              const roomNumber = row['Habitación']?.trim();
-              const birthDateRaw = row['Fecha de nacimiento2']?.trim();
-              const gender = row['Sexo']?.trim();
-              const phoneNumberRaw =
-                row['Número de celular (incluya el indicador de pais)']?.trim();
-              const email = row['Correo electrónico']?.trim();
-              const age = row['Edad']?.trim();
+              const firstName = cleanValue(row['Primer Nombre']);
+              const middleName = cleanValue(row['Segundo Nombre']);
+              const paternalLastName = cleanValue(row['Primer Apellido']);
+              const maternalLastName = cleanValue(row['Segundo Apellido']);
+              const stakeName = cleanValue(row['Estaca']);
+              const wardName = cleanValue(row['Barrio']);
+              const status = cleanValue(row['Estado']);
+              const companyNumber = cleanValue(row['Compañias']);
+              const roomNumber = cleanValue(row['Habitación']);
+              const birthDateRaw = cleanValue(row['Fecha de nacimiento2']);
+              const gender = cleanValue(row['Sexo']);
+              const phoneNumberRaw = cleanValue(
+                row['Número de celular (incluya el indicador de pais)'],
+              );
+              const email = cleanValue(row['Correo electrónico']);
+              const age = cleanValue(row['Edad']);
 
-              const shirtSize = row['Elija el tamaño de su camiseta']?.trim();
-              const isChurchMember =
+              const shirtSize = cleanValue(
+                row['Elija el tamaño de su camiseta'],
+              );
+              const isChurchMember = cleanValue(
                 row[
                   '¿Eres miembro de la Iglesia de Jesucristo de los Santos de los Últimos Días?'
-                ]?.trim();
-              const bloodType = row['Grupo sanguíneo y factor (RH)']?.trim();
-              const medicalCondition =
-                row[
-                  '¿Sufres de algún tipo de enfermedad crónica? Cuál es?'
-                ]?.trim();
-              const medicalTreatment =
-                row['¿Recibes algún tipo de tratamiento médico?']?.trim();
-              const healthInsurance =
-                row['¿Con qué seguro médico cuentas?']?.trim();
-              const emergencyContactName =
-                row['Nombre y Apellido - Persona de contacto']?.trim();
-              const emergencyContactPhoneRaw =
-                row['Teléfono - Persona de contacto']?.trim();
+                ],
+              );
+              const bloodType = cleanValue(
+                row['Grupo sanguíneo y factor (RH)'],
+              );
+              const medicalCondition = cleanValue(
+                row['¿Sufres de algún tipo de enfermedad crónica? Cuál es?'],
+              );
+              const medicalTreatment = cleanValue(
+                row['¿Recibes algún tipo de tratamiento médico?'],
+              );
+              const healthInsurance = cleanValue(
+                row['¿Con qué seguro médico cuentas?'],
+              );
+              const emergencyContactName = cleanValue(
+                row['Nombre y Apellido - Persona de contacto'],
+              );
+              const emergencyContactPhoneRaw = cleanValue(
+                row['Teléfono - Persona de contacto'],
+              );
 
-              // Convert birthDate from MM/DD/YYYY to YYYY-MM-DD
+              // Convert birthDate to YYYY-MM-DD (auto-detect format)
               let birthDate: string | undefined = undefined;
               if (birthDateRaw) {
-                const [month, day, year] = birthDateRaw.split('/');
+                const parts = birthDateRaw.split('/');
+                const firstValue = parseInt(parts[0]);
+                const year = parts[2];
+
+                let month, day;
+                // If first value > 12, it must be day (DD/MM/YYYY format)
+                // Otherwise, assume month (MM/DD/YYYY format)
+                if (firstValue > 12) {
+                  day = parts[0];
+                  month = parts[1];
+                } else {
+                  month = parts[0];
+                  day = parts[1];
+                }
+
                 if (month && day && year) {
                   birthDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
                 }
