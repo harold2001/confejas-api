@@ -2,21 +2,7 @@
 export const roomsData = [
   // Building 1 rooms
   {
-    roomNumber: '101',
-    buildingName: 'Albergues',
-    floorNumber: 1,
-    roomTypeName: 'Albergue',
-    totalBeds: 10,
-  },
-  {
     roomNumber: '102',
-    buildingName: 'Albergues',
-    floorNumber: 1,
-    roomTypeName: 'Albergue',
-    totalBeds: 10,
-  },
-  {
-    roomNumber: '103',
     buildingName: 'Albergues',
     floorNumber: 1,
     roomTypeName: 'Albergue',

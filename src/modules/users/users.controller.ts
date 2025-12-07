@@ -38,6 +38,12 @@ export class UsersController {
     return this.usersService.getStatistics();
   }
 
+  @Roles(AppRole.Admin, AppRole.Staff)
+  @Get('for-room-assignment')
+  getUsersForRoomAssignment() {
+    return this.usersService.getUsersForRoomAssignment();
+  }
+
   @Post('filter')
   findAllPaginated(
     @Body() body: { pagination: PaginationDto; filters: FilterUserDto },
@@ -88,5 +94,14 @@ export class UsersController {
   @Post('permuta')
   permutaUser(@Body() permutaUserDto: PermutaUserDto) {
     return this.usersService.permutaUser(permutaUserDto);
+  }
+
+  @Roles(AppRole.Admin, AppRole.Staff)
+  @Patch(':userId/room')
+  assignRoom(
+    @Param('userId') userId: string,
+    @Body() body: { roomId: string },
+  ) {
+    return this.usersService.assignRoom(userId, body.roomId);
   }
 }

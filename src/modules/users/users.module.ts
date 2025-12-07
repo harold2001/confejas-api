@@ -8,7 +8,10 @@ import { RolesModule } from '../roles/roles.module';
 import { QrModule } from '@app/infrastructure/qr/qr.module';
 import { EmailModule } from '@app/infrastructure/email/email.module';
 import { StakesModule } from '../stakes/stakes.module';
+import { WebsocketModule } from '@app/infrastructure/websocket/websocket.module';
+import { UserRoomsModule } from '../user-rooms/user-rooms.module';
 import { JwtService } from '@nestjs/jwt';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
@@ -17,6 +20,8 @@ import { JwtService } from '@nestjs/jwt';
     QrModule,
     EmailModule,
     StakesModule,
+    WebsocketModule,
+    forwardRef(() => UserRoomsModule),
   ],
   controllers: [UsersController],
   providers: [UsersService, UserRepository, JwtService],

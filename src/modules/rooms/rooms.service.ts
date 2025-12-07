@@ -72,4 +72,70 @@ export class RoomsService {
   async remove(id: string): Promise<Room> {
     return this.roomRepository.delete(id);
   }
+
+  async findAllWithDetails() {
+    const rooms = await this.roomRepository.findAll();
+
+    // Agrupar por edificio y piso
+    const grouped = rooms.reduce((acc, room) => {
+      if (!room.floor?.building) return acc;
+
+      const buildingId = room.floor.building.id;
+      const buildingName = room.floor.building.name;
+      const floorId = room.floor.id;
+      const floorNumber = room.floor.number;
+
+      if (!acc[buildingId]) {
+        acc[buildingId] = {
+          id: buildingId,
+          name: buildingName,
+          floors: {},
+        };
+      }
+
+      if (!acc[buildingId].floors[floorId]) {
+        acc[buildingId].floors[floorId] = {
+          id: floorId,
+          floorNumber,
+          rooms: [],
+        };
+      }
+
+      // Contar ocupantes activos
+      const activeUserRooms = room.userRooms?.filter((ur) => ur.isActive) || [];
+      const occupiedBeds = activeUserRooms.length;
+
+      acc[buildingId].floors[floorId].rooms.push({
+        id: room.id,
+        roomNumber: room.roomNumber,
+        totalBeds: room.totalBeds || 0,
+        occupiedBeds,
+        roomType: room.roomType
+          ? {
+              id: room.roomType.id,
+              name: room.roomType.name,
+            }
+          : null,
+        occupants: activeUserRooms.map((ur) => ({
+          id: ur.user.id,
+          firstName: ur.user.firstName,
+          lastName: `${ur.user.paternalLastName}${ur.user.maternalLastName ? ' ' + ur.user.maternalLastName : ''}`,
+          email: ur.user.email,
+        })),
+      });
+
+      return acc;
+    }, {});
+
+    // Convertir a array y ordenar
+    const buildings = Object.values(grouped).map((building: any) => ({
+      id: building.id,
+      name: building.name,
+      floors: Object.values(building.floors).sort(
+        (a: any, b: any) => a.floorNumber - b.floorNumber,
+      ),
+    }));
+
+    return buildings;
+  }
 }

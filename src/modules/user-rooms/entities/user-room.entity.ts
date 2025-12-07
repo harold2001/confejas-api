@@ -1,7 +1,7 @@
 import { BaseModel } from '@app/core/models/base.model';
 import { Room } from '@app/modules/rooms/entities/room.entity';
 import { User } from '@app/modules/users/entities/user.entity';
-import { Entity, ManyToOne } from 'typeorm';
+import { Entity, ManyToOne, Column } from 'typeorm';
 
 @Entity({ name: 'user_rooms' })
 export class UserRoom extends BaseModel {
@@ -10,4 +10,7 @@ export class UserRoom extends BaseModel {
 
   @ManyToOne(() => Room, (room) => room.userRooms, { onDelete: 'CASCADE' })
   room: Room;
+
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean;
 }

@@ -7,7 +7,6 @@ import { InternalServerErrorException } from '@nestjs/common';
 import { compare, genSalt, hash } from 'bcryptjs';
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
   ManyToMany,
   JoinTable,
@@ -15,6 +14,7 @@ import {
   BeforeInsert,
   BeforeUpdate,
   ManyToOne,
+  AfterLoad,
 } from 'typeorm';
 import { UserStatus } from '@app/core/enums/user-status';
 import { Gender } from '@app/core/enums/gender';
@@ -118,6 +118,21 @@ export class User extends BaseModel {
 
   @ManyToOne(() => User, { nullable: true })
   replacedBy?: User;
+
+  @AfterLoad()
+  sortUserRooms() {
+    if (this.userRooms && this.userRooms.length > 0) {
+      this.userRooms.sort((a, b) => {
+        // Primero las activas
+        if (a.isActive && !b.isActive) return -1;
+        if (!a.isActive && b.isActive) return 1;
+        // Luego por fecha de actualización (más reciente primero)
+        return (
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        );
+      });
+    }
+  }
 
   @BeforeInsert()
   @BeforeUpdate()
