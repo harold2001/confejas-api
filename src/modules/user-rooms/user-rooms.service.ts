@@ -72,4 +72,57 @@ export class UserRoomsService {
   async remove(id: string): Promise<UserRoom> {
     return this.userRoomRepository.delete(id);
   }
+
+  async assignRoom(
+    userId: string,
+    roomId: string,
+  ): Promise<{ message: string }> {
+    // 1. Verificar que el usuario existe
+    const user = await this.userRepository.findById(userId);
+    if (!user) {
+      throw new NotFoundException(`Usuario con ID ${userId} no encontrado`);
+    }
+
+    // 2. Verificar que la habitación existe
+    const room = await this.roomRepository.findById(roomId);
+    if (!room) {
+      throw new NotFoundException(`Habitación con ID ${roomId} no encontrada`);
+    }
+
+    // 3. Verificar capacidad de la habitación
+    const activeUserRooms = await this.userRoomRepository.findAll({
+      roomId: roomId,
+      isActive: true,
+    });
+
+    const occupiedBeds = activeUserRooms.length;
+    const totalBeds = room.totalBeds || 0;
+
+    if (occupiedBeds >= totalBeds) {
+      throw new NotFoundException(
+        `La habitación ${room.roomNumber} no tiene camas disponibles. Ocupadas: ${occupiedBeds}/${totalBeds}`,
+      );
+    }
+
+    // 4. Desactivar asignaciones previas de este usuario
+    const previousUserRooms = await this.userRoomRepository.findAll({
+      userId: userId,
+      isActive: true,
+    });
+
+    for (const userRoom of previousUserRooms) {
+      await this.userRoomRepository.update(userRoom.id, { isActive: false });
+    }
+
+    // 5. Crear nueva asignación activa
+    await this.userRoomRepository.create({
+      user,
+      room,
+      isActive: true,
+    });
+
+    return {
+      message: 'Habitación actualizada correctamente',
+    };
+  }
 }

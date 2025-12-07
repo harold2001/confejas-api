@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserRoomsService } from './user-rooms.service';
 import { UserRoomsController } from './user-rooms.controller';
@@ -13,10 +13,10 @@ import { UsersModule } from '../users/users.module';
   imports: [
     TypeOrmModule.forFeature([UserRoom, User, Room]),
     RoomsModule,
-    UsersModule,
+    forwardRef(() => UsersModule),
   ],
   controllers: [UserRoomsController],
   providers: [UserRoomsService, UserRoomRepository],
-  exports: [UserRoomRepository],
+  exports: [UserRoomRepository, UserRoomsService],
 })
 export class UserRoomsModule {}

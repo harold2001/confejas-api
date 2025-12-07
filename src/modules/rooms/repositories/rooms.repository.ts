@@ -10,8 +10,20 @@ export class RoomRepository
   extends TypeOrmRepository<Room>
   implements GenericRepository<Room>
 {
-  protected relations: string[] = ['floor', 'roomType', 'userRooms'];
-  protected paginatedRelations: string[] = ['floor', 'roomType'];
+  protected relations: string[] = [
+    'floor',
+    'floor.building',
+    'roomType',
+    'userRooms',
+    'userRooms.user',
+  ];
+  protected paginatedRelations: string[] = [
+    'floor',
+    'floor.building',
+    'roomType',
+    'userRooms',
+    'userRooms.user',
+  ];
 
   constructor(
     @InjectRepository(Room) protected readonly repository: Repository<Room>,

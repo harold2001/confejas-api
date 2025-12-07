@@ -27,7 +27,7 @@ const postgresConfig = (configService: ConfigService): TypeOrmModuleOptions => {
     applicationName: appConfig.name,
     connectTimeoutMS: 10000,
     type: 'postgres',
-    synchronize: true,
+    synchronize: false,
     database: dbConfig.dbName,
     host: dbConfig.host,
     port: dbConfig.port,

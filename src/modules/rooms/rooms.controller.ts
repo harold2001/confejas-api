@@ -10,6 +10,8 @@ import {
 import { RoomsService } from './rooms.service';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { UpdateRoomDto } from './dto/update-room.dto';
+import { Roles } from '@app/core/decorators/roles.decorator';
+import { AppRole } from '@app/core/enums/roles';
 
 @Controller('rooms')
 export class RoomsController {
@@ -23,6 +25,12 @@ export class RoomsController {
   @Get()
   findAll() {
     return this.roomsService.findAll();
+  }
+
+  @Roles(AppRole.Admin, AppRole.Staff)
+  @Get('with-details')
+  findAllWithDetails() {
+    return this.roomsService.findAllWithDetails();
   }
 
   @Get(':id')

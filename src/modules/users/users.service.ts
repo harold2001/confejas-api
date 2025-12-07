@@ -21,6 +21,8 @@ import { DataSource } from 'typeorm';
 import { UserStatus } from '@app/core/enums/user-status';
 import { PermutaUserDto } from './dto/permuta-user.dto';
 import { Gender } from '@app/core/enums/gender';
+import { AttendanceGateway } from '@app/infrastructure/websocket/websocket.gateway';
+import { UserRoomsService } from '../user-rooms/user-rooms.service';
 
 @Injectable()
 export class UsersService {
@@ -33,6 +35,8 @@ export class UsersService {
     private readonly dataSource: DataSource,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly attendanceGateway: AttendanceGateway,
+    private readonly userRoomsService: UserRoomsService,
   ) {}
 
   async sendQr() {
@@ -121,7 +125,12 @@ export class UsersService {
     }
 
     user.hasArrived = markAsArrivedDto.hasArrived;
-    return this.userRepository.update(id, user);
+    const updatedUser = await this.userRepository.update(id, user);
+
+    // Emit socket event
+    this.attendanceGateway.emitAttendanceUpdate(updatedUser);
+
+    return updatedUser;
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -335,21 +344,24 @@ export class UsersService {
 
       // Mark attendance as true (always true, can be scanned multiple times)
       user.hasArrived = true;
-      await this.userRepository.update(user.id, user);
+      const updatedUser = await this.userRepository.update(user.id, user);
+
+      // Emit socket event
+      this.attendanceGateway.emitAttendanceUpdate(updatedUser);
 
       // Return user information
       return {
         success: true,
         message: 'Asistencia confirmada exitosamente',
         user: {
-          id: user.id,
-          firstName: user.firstName,
-          middleName: user.middleName,
-          paternalLastName: user.paternalLastName,
-          maternalLastName: user.maternalLastName,
-          company: user.company,
-          userRooms: user.userRooms,
-          hasArrived: user.hasArrived,
+          id: updatedUser.id,
+          firstName: updatedUser.firstName,
+          middleName: updatedUser.middleName,
+          paternalLastName: updatedUser.paternalLastName,
+          maternalLastName: updatedUser.maternalLastName,
+          company: updatedUser.company,
+          userRooms: updatedUser.userRooms,
+          hasArrived: updatedUser.hasArrived,
         },
       };
     } catch (error) {
@@ -559,5 +571,42 @@ export class UsersService {
       companyStatistics,
       stakeStatistics,
     };
+  }
+
+  async assignRoom(
+    userId: string,
+    roomId: string,
+  ): Promise<{ message: string }> {
+    return this.userRoomsService.assignRoom(userId, roomId);
+  }
+
+  async getUsersForRoomAssignment() {
+    const users = await this.userRepository.findAll();
+
+    return users.map((user) => {
+      const activeRoom = user.userRooms?.find((ur) => ur.isActive);
+      const fullName =
+        `${user.firstName} ${user.paternalLastName}${user.maternalLastName ? ' ' + user.maternalLastName : ''}`.trim();
+
+      return {
+        id: user.id,
+        firstName: user.firstName,
+        paternalLastName: user.paternalLastName,
+        maternalLastName: user.maternalLastName,
+        fullName,
+        email: user.email,
+        hasRoom: !!activeRoom,
+        currentRoom: activeRoom
+          ? {
+              id: activeRoom.room.id,
+              roomNumber: activeRoom.room.roomNumber,
+              floorNumber: activeRoom.room.floor?.number,
+              buildingName: activeRoom.room.floor?.building?.name,
+            }
+          : null,
+        isParticipant: user.roles?.some((role) => role.name === 'Participant'),
+        isStaff: user.roles?.some((role) => role.name === 'Staff'),
+      };
+    });
   }
 }

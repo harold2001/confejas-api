@@ -31,6 +31,10 @@ export class UserRoomRepository
       where.room = { id: filters.roomId };
     }
 
+    if (filters?.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    }
+
     return where;
   }
 }
