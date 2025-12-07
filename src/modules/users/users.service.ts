@@ -16,6 +16,7 @@ import { QrService } from '@app/infrastructure/qr/qr.service';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { StakeRepository } from '../stakes/repositories/stakes.repository';
+import { CompanyRepository } from '../companies/repositories/companies.repository';
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
 import { DataSource } from 'typeorm';
 import { UserStatus } from '@app/core/enums/user-status';
@@ -30,6 +31,7 @@ export class UsersService {
     private readonly userRepository: UserRepository,
     private readonly roleRepository: RoleRepository,
     private readonly stakeRepository: StakeRepository,
+    private readonly companyRepository: CompanyRepository,
     private readonly emailService: EmailService,
     private readonly qrService: QrService,
     private readonly dataSource: DataSource,
@@ -78,17 +80,17 @@ export class UsersService {
         batch.map(async (user) => {
           try {
             // Generate attendance token
-            // const token = this.generateAttendanceToken(user.id);
-            // const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
+            const token = this.generateAttendanceToken(user.id);
+            const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
 
             // Generate QR code from URL
-            // const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
+            const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
 
             // Send email
-            // await this.emailService.sendQrEmail(user.email, qrBase64);
+            await this.emailService.sendQrEmail(user.email, qrBase64);
 
             // Mark QR as sent
-            // await this.userRepository.update(user.id, { qrSent: true });
+            await this.userRepository.update(user.id, { qrSent: true });
 
             successCount++;
           } catch (error) {
@@ -141,7 +143,7 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { roleIds, password, ...userData } = createUserDto;
+    const { roleIds, password, companyId, ...userData } = createUserDto;
 
     // Fetch all roles
     const roles = await Promise.all(
@@ -162,11 +164,21 @@ export class UsersService {
       );
     }
 
+    // Validate and fetch company if companyId is provided
+    let company = undefined;
+    if (companyId) {
+      company = await this.companyRepository.findById(companyId);
+      if (!company) {
+        throw new NotFoundException(`Company with ID ${companyId} not found`);
+      }
+    }
+
     const user = await this.userRepository.create({
       ...userData,
       password: password,
       roles,
       stake,
+      company,
     });
 
     // Generate attendance token (valid for 1 week)
@@ -219,7 +231,7 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const { roleIds, password, ...userData } = updateUserDto;
+    const { roleIds, password, companyId, ...userData } = updateUserDto;
 
     const updateData: any = { ...userData };
 
@@ -247,6 +259,15 @@ export class UsersService {
       }
 
       updateData.stake = stake;
+    }
+
+    // Validate and fetch company if companyId is provided
+    if (companyId) {
+      const company = await this.companyRepository.findById(companyId);
+      if (!company) {
+        throw new NotFoundException(`Company with ID ${companyId} not found`);
+      }
+      updateData.company = company;
     }
 
     return this.userRepository.update(id, updateData);

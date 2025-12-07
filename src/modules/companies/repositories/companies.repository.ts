@@ -24,4 +24,27 @@ export class CompanyRepository
     const where: FindOptionsWhere<Company> = {};
     return where;
   }
+
+  async findAllWithUserCount(): Promise<
+    Array<Company & { userCount: number }>
+  > {
+    const companies = await this.repository
+      .createQueryBuilder('company')
+      .leftJoin('company.users', 'user')
+      .select('company.id', 'id')
+      .addSelect('company.name', 'name')
+      .addSelect('company.number', 'number')
+      .addSelect('company.description', 'description')
+      .addSelect('company.createdAt', 'createdAt')
+      .addSelect('company.updatedAt', 'updatedAt')
+      .addSelect('COUNT(user.id)', 'userCount')
+      .groupBy('company.id')
+      .orderBy('company.number', 'ASC')
+      .getRawMany();
+
+    return companies.map((company) => ({
+      ...company,
+      userCount: parseInt(company.userCount, 10),
+    }));
+  }
 }

@@ -273,4 +273,13 @@ export class CreateUserDto {
   @IsOptional()
   @IsUUID()
   stakeId?: string;
+
+  @ApiProperty({
+    description: 'Company ID',
+    example: 'uuid-string',
+    required: false,
+  })
+  @IsOptional()
+  @IsUUID()
+  companyId?: string;
 }
