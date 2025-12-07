@@ -77,8 +77,8 @@ export class UsersService {
             const token = this.generateAttendanceToken(user.id);
             const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
 
-            // Generate QR code
-            const { qrBase64 } = await this.qrService.generateUserQr(qrUrl);
+            // Generate QR code from URL
+            const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
 
             // Send email
             await this.emailService.sendQrEmail(user.email, qrBase64);
