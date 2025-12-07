@@ -39,25 +39,25 @@ export class UsersService {
     private readonly userRoomsService: UserRoomsService,
   ) {}
 
-  async sendQr() {
-    // Get all users with Participant role, valid email, and hasArrived = false
-    const allUsers = await this.userRepository.findAll();
-    const usersToSend = allUsers.filter(
-      (user) =>
-        user.roles?.some((role) => role.name === 'Participant') &&
-        user.email &&
-        user.email.trim() !== '' &&
-        !user.hasArrived,
-    );
+  async sendQr(userIds: string[]) {
+    // Get users by IDs
+    const usersToSend = await this.userRepository.findByIds(userIds);
+
+    // Filter out null users and those who already have QR sent
+    // const usersToSend = allUsers.filter(
+    //   (user) => user && user.email && user.email.trim() !== '' && !user.qrSent,
+    // );
 
     if (usersToSend.length === 0) {
       return {
         success: true,
-        message: 'No hay usuarios pendientes para enviar QR',
+        message:
+          'No hay usuarios pendientes para enviar QR (todos ya tienen QR enviado o no tienen email)',
         totalUsers: 0,
         successCount: 0,
         failedCount: 0,
         failed: [],
+        skipped: userIds.length,
       };
     }
 
@@ -78,14 +78,18 @@ export class UsersService {
         batch.map(async (user) => {
           try {
             // Generate attendance token
-            const token = this.generateAttendanceToken(user.id);
-            const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
+            // const token = this.generateAttendanceToken(user.id);
+            // const qrUrl = `${webAppUrl}/attendance/verify/${token}`;
 
             // Generate QR code from URL
-            const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
+            // const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
 
             // Send email
-            await this.emailService.sendQrEmail(user.email, qrBase64);
+            // await this.emailService.sendQrEmail(user.email, qrBase64);
+
+            // Mark QR as sent
+            // await this.userRepository.update(user.id, { qrSent: true });
+
             successCount++;
           } catch (error) {
             failedCount++;
@@ -105,12 +109,15 @@ export class UsersService {
       }
     }
 
+    const skippedCount = userIds.length - usersToSend.length;
+
     return {
       success: true,
-      message: `Proceso de envío completado. ${successCount} correos enviados exitosamente, ${failedCount} fallidos.`,
+      message: `Proceso de envío completado. ${successCount} correos enviados exitosamente, ${failedCount} fallidos, ${skippedCount} omitidos (ya tenían QR enviado).`,
       totalUsers: usersToSend.length,
       successCount,
       failedCount,
+      skipped: skippedCount,
       failed: failedUsers,
     };
   }

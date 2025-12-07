@@ -140,6 +140,10 @@ export class UserRepository
       where.stake = { id: filters.stakeId };
     }
 
+    if (filters?.stakeIds?.length) {
+      where.stake = { id: In(filters.stakeIds) };
+    }
+
     if (filters?.stakeName) {
       where.stake = { name: ILike(`%${filters.stakeName}%`) };
     }
@@ -193,6 +197,15 @@ export class UserRepository
       where.roles = {
         name: In(filters.roleNames),
       };
+    }
+
+    // Filter by email existence
+    if (filters?.hasEmail !== undefined) {
+      if (filters.hasEmail) {
+        where.email = Not(IsNull());
+      } else {
+        where.email = IsNull();
+      }
     }
 
     if (filters?.searchName) {

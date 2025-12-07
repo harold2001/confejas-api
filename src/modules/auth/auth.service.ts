@@ -25,6 +25,14 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if user is a Participant (not allowed to login)
+    const isParticipant = user.roles?.some(
+      (role) => role.name === 'Participant',
+    );
+    if (isParticipant && user.roles?.length === 1) {
+      throw new UnauthorizedException('Participants are not allowed to login');
+    }
+
     // Don't return the password in the response
     const { password: _, ...userWithoutPassword } = user;
 

@@ -105,6 +105,9 @@ export class User extends BaseModel {
   @Column({ nullable: true, type: 'varchar' })
   emergencyContactPhone?: string;
 
+  @Column({ type: 'boolean', default: false })
+  qrSent?: boolean;
+
   @ManyToMany(() => Role, (role) => role.users, { eager: true })
   @JoinTable({
     name: 'user_roles',
