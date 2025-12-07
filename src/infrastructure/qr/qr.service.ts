@@ -25,4 +25,9 @@ export class QrService {
 
     return { qrBase64, attendanceUrl, token };
   }
+
+  async generateQrFromUrl(url: string) {
+    const qrBase64 = await QRCode.toDataURL(url);
+    return { qrBase64 };
+  }
 }
