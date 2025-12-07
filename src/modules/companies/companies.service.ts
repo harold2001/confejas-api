@@ -30,4 +30,10 @@ export class CompaniesService {
   async remove(id: string): Promise<void> {
     await this.companyRepository.delete(id);
   }
+
+  async findAllWithUserCount(): Promise<
+    Array<Company & { userCount: number }>
+  > {
+    return this.companyRepository.findAllWithUserCount();
+  }
 }

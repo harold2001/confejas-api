@@ -138,4 +138,8 @@ export class RoomsService {
 
     return buildings;
   }
+
+  async findAllWithUserCount(): Promise<Array<Room & { userCount: number }>> {
+    return this.roomRepository.findAllWithUserCount();
+  }
 }

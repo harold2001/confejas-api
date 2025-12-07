@@ -33,6 +33,11 @@ export class RoomsController {
     return this.roomsService.findAllWithDetails();
   }
 
+  @Get('with-count/users')
+  findAllWithUserCount() {
+    return this.roomsService.findAllWithUserCount();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.roomsService.findOne(id);
