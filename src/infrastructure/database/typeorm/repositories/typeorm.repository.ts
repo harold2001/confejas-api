@@ -60,7 +60,7 @@ export abstract class TypeOrmRepository<Entity extends BaseModel>
     });
   }
 
-  findByIds(ids: number[]): Promise<Entity[]> {
+  findByIds(ids: string[]): Promise<Entity[]> {
     return this.repository.find({
       where: {
         id: In(ids),

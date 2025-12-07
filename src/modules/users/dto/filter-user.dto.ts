@@ -34,4 +34,6 @@ export class FilterUserDto {
   emergencyContactPhone?: string;
   gender?: Gender;
   birthDate?: string;
+  hasEmail?: boolean;
+  stakeIds?: string[];
 }
