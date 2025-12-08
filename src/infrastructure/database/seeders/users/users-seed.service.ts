@@ -55,6 +55,16 @@ export class UsersSeedService {
     return createdUsers;
   }
 
+  async importUsers(): Promise<User[]> {
+    this.logger.log('Importing users from CSV...');
+    const csvUsers = await this.importFromCSV('import-users.csv', true);
+    this.logger.log(`Users import completed. Total: ${csvUsers.length}`);
+    this.logger.log(
+      `⚠️  All imported users have the default password: "${this.DEFAULT_PASSWORD}"`,
+    );
+    return csvUsers;
+  }
+
   private async createUser(userData: any): Promise<User | null> {
     // Find the role for this user
     const role = await this.roleRepository.findOne({
@@ -144,8 +154,11 @@ export class UsersSeedService {
     return savedUser;
   }
 
-  private async importFromCSV(): Promise<User[]> {
-    const csvPath = path.join(__dirname, '../../../../../data.csv');
+  private async importFromCSV(
+    filename: string = 'data.csv',
+    skipExisting = false,
+  ): Promise<User[]> {
+    const csvPath = path.join(__dirname, '../../../../../', filename);
     const createdUsers: User[] = [];
 
     // Get the Participant role once
@@ -331,6 +344,14 @@ export class UsersSeedService {
                 isChurchMember?.toLowerCase() === 'sí';
 
               if (existingUser) {
+                if (skipExisting) {
+                  // Skip existing users when importing
+                  this.logger.log(
+                    `⏭️  User ${firstName} ${middleName || ''} ${paternalLastName} ${maternalLastName || ''} already exists, skipping...`,
+                  );
+                  continue;
+                }
+
                 // Check if any fields need updating
                 let needsUpdate = false;
                 const userToUpdate = new User();
