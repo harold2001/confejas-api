@@ -13,6 +13,7 @@ import { WebsocketModule } from '@app/infrastructure/websocket/websocket.module'
 import { UserRoomsModule } from '../user-rooms/user-rooms.module';
 import { JwtService } from '@nestjs/jwt';
 import { forwardRef } from '@nestjs/common';
+import { RoomsModule } from '../rooms/rooms.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { forwardRef } from '@nestjs/common';
     CompaniesModule,
     WebsocketModule,
     forwardRef(() => UserRoomsModule),
+    RoomsModule,
   ],
   controllers: [UsersController],
   providers: [UsersService, UserRepository, JwtService],
