@@ -150,10 +150,16 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { roleIds, password, companyId, roomId, ...userData } = createUserDto;
 
+    // Normalize stakeId: empty string -> undefined
     const stakeId =
       userData.stakeId && userData.stakeId.trim() !== ''
         ? userData.stakeId
         : undefined;
+
+    // Remove stakeId from userData to avoid passing empty string
+    if (!stakeId) {
+      delete userData.stakeId;
+    }
 
     const roles = await Promise.all(
       roleIds.map(async (roleId) => {
