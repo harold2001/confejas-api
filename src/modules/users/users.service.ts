@@ -89,7 +89,10 @@ export class UsersService {
             const { qrBase64 } = await this.qrService.generateQrFromUrl(qrUrl);
 
             // Send email
-            await this.emailService.sendQrEmail(user.email, qrBase64);
+            await this.emailService.sendQrEmail(
+              user.email?.replace(' ', ''),
+              qrBase64,
+            );
 
             // Mark QR as sent
             await this.userRepository.update(user.id, { qrSent: true });
