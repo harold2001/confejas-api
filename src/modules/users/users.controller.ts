@@ -14,7 +14,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { PaginationDto } from '@app/core/dto/pagination.dto';
 import { FilterUserDto } from './dto/filter-user.dto';
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
-import { PermutaUserDto } from './dto/permuta-user.dto';
+import { PermutaExistingUserDto, PermutaUserDto } from './dto/permuta-user.dto';
 import { VerifyAttendanceDto } from './dto/verify-attendance.dto';
 import { SendQrDto } from './dto/send-qr.dto';
 import { Roles } from '@app/core/decorators/roles.decorator';
@@ -93,7 +93,7 @@ export class UsersController {
   }
 
   @Post('permuta')
-  permutaUser(@Body() permutaUserDto: PermutaUserDto) {
+  permutaUser(@Body() permutaUserDto: PermutaUserDto | PermutaExistingUserDto) {
     return this.usersService.permutaUser(permutaUserDto);
   }
 

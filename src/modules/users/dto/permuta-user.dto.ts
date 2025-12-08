@@ -1,4 +1,4 @@
-import { IsUUID, IsNotEmpty } from 'class-validator';
+import { IsUUID, IsNotEmpty, IsOptional, IsBoolean } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
 
@@ -10,4 +10,15 @@ export class PermutaUserDto extends CreateUserDto {
   @IsUUID()
   @IsNotEmpty()
   originalUserId: string;
+}
+
+export class PermutaExistingUserDto {
+  @IsOptional()
+  permutaUserId: string;
+
+  @IsNotEmpty()
+  originalUserId: string;
+
+  @IsBoolean()
+  isExisting: boolean;
 }
