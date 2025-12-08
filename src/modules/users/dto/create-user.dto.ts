@@ -23,8 +23,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
-  firstName: string;
+  firstName?: string;
 
   @ApiProperty({
     description: 'Middle name',
@@ -33,7 +32,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
   middleName?: string;
 
   @ApiProperty({
@@ -42,8 +40,7 @@ export class CreateUserDto {
   })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(100)
-  paternalLastName: string;
+  paternalLastName?: string;
 
   @ApiProperty({
     description: 'Maternal last name',
@@ -52,7 +49,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
   maternalLastName?: string;
 
   @ApiProperty({
@@ -107,9 +103,8 @@ export class CreateUserDto {
     example: 'SecurePassword123!',
   })
   @IsString()
-  @IsNotEmpty()
-  @MinLength(6)
-  password: string;
+  @IsOptional()
+  password?: string;
 
   @ApiProperty({
     description: 'Physical address',
@@ -128,7 +123,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
   department?: string;
 
   @ApiProperty({
@@ -165,7 +159,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(50)
   keyCode?: string;
 
   @ApiProperty({
@@ -175,7 +168,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
   ward?: string;
 
   @ApiProperty({
@@ -222,7 +214,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(10)
   bloodType?: string;
 
   @ApiProperty({
@@ -232,7 +223,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(100)
   healthInsurance?: string;
 
   @ApiProperty({
@@ -242,7 +232,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(200)
   emergencyContactName?: string;
 
   @ApiProperty({
@@ -252,7 +241,6 @@ export class CreateUserDto {
   })
   @IsString()
   @IsOptional()
-  @MaxLength(20)
   emergencyContactPhone?: string;
 
   @ApiProperty({
@@ -260,8 +248,9 @@ export class CreateUserDto {
     example: ['uuid-string-1', 'uuid-string-2'],
     type: [String],
   })
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
+  @ArrayMinSize(0)
   @IsUUID('4', { each: true })
   roleIds: string[];
 

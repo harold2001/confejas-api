@@ -20,7 +20,7 @@ import { CompanyRepository } from '../companies/repositories/companies.repositor
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
 import { DataSource } from 'typeorm';
 import { UserStatus } from '@app/core/enums/user-status';
-import { PermutaExistingUserDto, PermutaUserDto } from './dto/permuta-user.dto';
+import { PermutaUserDto } from './dto/permuta-user.dto';
 import { Gender } from '@app/core/enums/gender';
 import { AttendanceGateway } from '@app/infrastructure/websocket/websocket.gateway';
 import { UserRoomsService } from '../user-rooms/user-rooms.service';
@@ -161,15 +161,17 @@ export class UsersService {
       delete userData.stakeId;
     }
 
-    const roles = await Promise.all(
-      roleIds.map(async (roleId) => {
-        const role = await this.roleRepository.findById(roleId);
-        if (!role) {
-          throw new NotFoundException(`Role with ID ${roleId} not found`);
-        }
-        return role;
-      }),
-    );
+    const roles = roleIds?.length
+      ? await Promise.all(
+          roleIds.map(async (roleId) => {
+            const role = await this.roleRepository.findById(roleId);
+            if (!role) {
+              throw new NotFoundException(`Role with ID ${roleId} not found`);
+            }
+            return role;
+          }),
+        )
+      : [await this.roleRepository.findByName('Participant')];
 
     let stake = undefined;
     if (stakeId) {
@@ -197,7 +199,7 @@ export class UsersService {
 
     const user = await this.userRepository.create({
       ...userData,
-      password: password,
+      password: password || 'password',
       roles,
       stake,
       company,
@@ -308,51 +310,19 @@ export class UsersService {
     return this.userRepository.delete(id);
   }
 
-  async permutaUser(
-    permutaUserDto: PermutaUserDto | PermutaExistingUserDto,
-  ): Promise<User> {
+  async permutaUser(permutaUserDto: PermutaUserDto): Promise<User> {
     // Permuta con usuario existente
-    if ('isExisting' in permutaUserDto && permutaUserDto.isExisting) {
-      const { permutaUserId, originalUserId } = permutaUserDto;
+    const {
+      originalUserId,
+      permutaUserId,
+      roleIds,
+      password,
+      stakeId,
+      ...newUserData
+    } = permutaUserDto;
 
-      // Buscar usuarios
-      const originalUser = await this.userRepository.findById(originalUserId);
-      if (!originalUser) {
-        throw new NotFoundException(
-          `Usuario original con ID ${originalUserId} no encontrado`,
-        );
-      }
-
-      if (originalUser.replacedBy) {
-        throw new BadRequestException(
-          `El usuario ${originalUser.firstName} ${originalUser.paternalLastName} ya fue reemplazado anteriormente`,
-        );
-      }
-
-      const permutaUser = await this.userRepository.findById(permutaUserId);
-      if (!permutaUser) {
-        throw new NotFoundException(
-          `Usuario existente con ID ${permutaUserId} no encontrado`,
-        );
-      }
-
-      // Actualizar usuario original
-      originalUser.hasArrived = false;
-      originalUser.status = UserStatus.REPLACED;
-      originalUser.replacedBy = permutaUser;
-
-      await this.userRepository.update(originalUser.id, originalUser);
-
-      return permutaUser;
-    }
-
-    // Permuta con nuevo usuario (tipo PermutaUserDto)
-    const permutaDto = permutaUserDto as PermutaUserDto;
-    const { originalUserId, roleIds, password, stakeId, ...newUserData } =
-      permutaDto;
-
-    // Buscar usuario original
     const originalUser = await this.userRepository.findById(originalUserId);
+
     if (!originalUser) {
       throw new NotFoundException(
         `Usuario original con ID ${originalUserId} no encontrado`,
@@ -365,13 +335,41 @@ export class UsersService {
       );
     }
 
+    if (permutaUserDto.isExisting) {
+      const permutaUser = await this.userRepository.findById(permutaUserId);
+
+      if (!permutaUser) {
+        throw new NotFoundException(
+          `Usuario existente con ID ${permutaUserId} no encontrado`,
+        );
+      }
+
+      // Actualizar usuario original
+      originalUser.hasArrived = false;
+      originalUser.status = UserStatus.REPLACED;
+      originalUser.replacedBy = permutaUser;
+      await this.userRepository.update(originalUser.id, originalUser);
+
+      permutaUser.company = originalUser.company;
+      permutaUser.hasArrived = true;
+      await this.userRepository.update(permutaUser.id, permutaUser);
+      await this.userRoomsService.assignRoom(
+        permutaUser.id,
+        originalUser.userRooms?.[0]?.room?.id,
+      );
+
+      return permutaUser;
+    }
+
     // Crear nuevo usuario
-    const createUserDto: CreateUserDto = {
+    const createUserDto = {
       ...newUserData,
       password,
       roleIds,
       stakeId,
-      hasArrived: false,
+      companyId: originalUser.company?.id,
+      roomId: originalUser.userRooms?.[0]?.room?.id,
+      hasArrived: true,
     };
 
     const savedNewUser = await this.create(createUserDto);
@@ -380,7 +378,6 @@ export class UsersService {
     originalUser.hasArrived = false;
     originalUser.status = UserStatus.REPLACED;
     originalUser.replacedBy = savedNewUser;
-
     await this.userRepository.update(originalUser.id, originalUser);
 
     return savedNewUser;

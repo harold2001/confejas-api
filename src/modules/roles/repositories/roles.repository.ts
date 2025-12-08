@@ -19,6 +19,10 @@ export class RoleRepository
     super(repository);
   }
 
+  async findByName(name: string): Promise<Role | null> {
+    return this.repository.findOne({ where: { name } });
+  }
+
   protected parseFilters(filters?: any): FindOptionsWhere<Role> {
     const where: FindOptionsWhere<Role> = {};
 
