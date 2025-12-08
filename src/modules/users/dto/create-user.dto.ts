@@ -280,6 +280,5 @@ export class CreateUserDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID()
   companyId?: string;
 }

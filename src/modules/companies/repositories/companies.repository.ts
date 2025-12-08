@@ -22,6 +22,11 @@ export class CompanyRepository
 
   protected parseFilters(filters?: any): FindOptionsWhere<Company> {
     const where: FindOptionsWhere<Company> = {};
+
+    if (filters?.number !== undefined) {
+      where.number = filters.number;
+    }
+
     return where;
   }
 
