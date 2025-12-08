@@ -10,8 +10,8 @@ export class CompanyRepository
   extends TypeOrmRepository<Company>
   implements GenericRepository<Company>
 {
-  protected relations: string[] = ['users'];
-  protected paginatedRelations: string[] = ['users'];
+  protected relations: string[] = ['users', 'users.stake'];
+  protected paginatedRelations: string[] = ['users', 'users.stake'];
 
   constructor(
     @InjectRepository(Company)
