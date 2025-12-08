@@ -154,4 +154,8 @@ export class User extends BaseModel {
       throw new InternalServerErrorException('Error validating password');
     }
   }
+
+  public hasOneRole(roleName: string): boolean {
+    return this.roles.some((role) => role.name === roleName);
+  }
 }
