@@ -90,19 +90,19 @@ export class UserRoomsService {
     }
 
     // 3. Verificar capacidad de la habitación
-    const activeUserRooms = await this.userRoomRepository.findAll({
-      roomId: roomId,
-      isActive: true,
-    });
+    // const activeUserRooms = await this.userRoomRepository.findAll({
+    //   roomId: roomId,
+    //   isActive: true,
+    // });
 
-    const occupiedBeds = activeUserRooms.length;
-    const totalBeds = room.totalBeds || 0;
+    // const occupiedBeds = activeUserRooms.length;
+    // const totalBeds = room.totalBeds || 0;
 
-    if (occupiedBeds >= totalBeds) {
-      throw new NotFoundException(
-        `La habitación ${room.roomNumber} no tiene camas disponibles. Ocupadas: ${occupiedBeds}/${totalBeds}`,
-      );
-    }
+    // if (occupiedBeds >= totalBeds) {
+    //   throw new NotFoundException(
+    //     `La habitación ${room.roomNumber} no tiene camas disponibles. Ocupadas: ${occupiedBeds}/${totalBeds}`,
+    //   );
+    // }
 
     // 4. Desactivar asignaciones previas de este usuario
     const previousUserRooms = await this.userRoomRepository.findAll({
