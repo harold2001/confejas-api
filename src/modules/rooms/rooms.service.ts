@@ -102,8 +102,13 @@ export class RoomsService {
       }
 
       // Contar ocupantes activos
-      const activeUserRooms = room.userRooms?.filter((ur) => ur.isActive) || [];
-      const occupiedBeds = activeUserRooms.length;
+      const activeUserRooms =
+        room.userRooms?.filter(
+          (ur) =>
+            ur.isActive && (ur.user.hasArrived || ur.user.hasOneRole('Staff')),
+        ) || [];
+
+      const occupiedBeds = activeUserRooms?.length || 0;
 
       acc[buildingId].floors[floorId].rooms.push({
         id: room.id,
@@ -116,11 +121,12 @@ export class RoomsService {
               name: room.roomType.name,
             }
           : null,
-        occupants: activeUserRooms.map((ur) => ({
+        occupants: activeUserRooms?.map((ur) => ({
           id: ur.user.id,
           firstName: ur.user.firstName,
           lastName: `${ur.user.paternalLastName}${ur.user.maternalLastName ? ' ' + ur.user.maternalLastName : ''}`,
           email: ur.user.email,
+          hasArrived: ur.user.hasArrived,
         })),
       });
 
@@ -131,9 +137,17 @@ export class RoomsService {
     const buildings = Object.values(grouped).map((building: any) => ({
       id: building.id,
       name: building.name,
-      floors: Object.values(building.floors).sort(
-        (a: any, b: any) => a.floorNumber - b.floorNumber,
-      ),
+      floors: Object.values(building.floors)
+        .sort((a: any, b: any) => a.floorNumber - b.floorNumber)
+        .map((floor: any) => ({
+          ...floor,
+          rooms: floor.rooms.sort((a: any, b: any) =>
+            a.roomNumber.localeCompare(b.roomNumber, undefined, {
+              numeric: true,
+              sensitivity: 'base',
+            }),
+          ),
+        })),
     }));
 
     return buildings;
