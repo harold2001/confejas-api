@@ -145,6 +145,12 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { roleIds, password, companyId, ...userData } = createUserDto;
 
+    // Convert empty strings to undefined for UUID fields
+    const stakeId =
+      userData.stakeId && userData.stakeId.trim() !== ''
+        ? userData.stakeId
+        : undefined;
+
     // Fetch all roles
     const roles = await Promise.all(
       roleIds.map(async (roleId) => {
@@ -156,17 +162,18 @@ export class UsersService {
       }),
     );
 
-    const stake = await this.stakeRepository.findById(userData.stakeId);
-
-    if (!stake) {
-      throw new NotFoundException(
-        `Stake with ID ${userData.stakeId} not found`,
-      );
+    // Validate and fetch stake if stakeId is provided
+    let stake = undefined;
+    if (stakeId) {
+      stake = await this.stakeRepository.findById(stakeId);
+      if (!stake) {
+        throw new NotFoundException(`Stake with ID ${stakeId} not found`);
+      }
     }
 
     // Validate and fetch company if companyId is provided
     let company = undefined;
-    if (companyId) {
+    if (companyId && companyId.trim() !== '') {
       company = await this.companyRepository.findById(companyId);
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);
@@ -249,7 +256,8 @@ export class UsersService {
       updateData.roles = roles;
     }
 
-    if (userData.stakeId) {
+    // Validate and fetch stake if stakeId is provided and not empty
+    if (userData.stakeId && userData.stakeId.trim() !== '') {
       const stake = await this.stakeRepository.findById(userData.stakeId);
 
       if (!stake) {
@@ -261,8 +269,8 @@ export class UsersService {
       updateData.stake = stake;
     }
 
-    // Validate and fetch company if companyId is provided
-    if (companyId) {
+    // Validate and fetch company if companyId is provided and not empty
+    if (companyId && companyId.trim() !== '') {
       const company = await this.companyRepository.findById(companyId);
       if (!company) {
         throw new NotFoundException(`Company with ID ${companyId} not found`);
