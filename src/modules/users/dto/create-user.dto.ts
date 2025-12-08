@@ -271,7 +271,6 @@ export class CreateUserDto {
     required: false,
   })
   @IsOptional()
-  @IsUUID()
   stakeId?: string;
 
   @ApiProperty({
