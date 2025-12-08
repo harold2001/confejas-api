@@ -35,5 +35,7 @@ export const getGenderFromString = (gender: string): Gender | null => {
 export const cleanValue = (value: string | undefined): string | undefined => {
   if (!value) return undefined;
   const trimmed = value.trim();
-  return trimmed === '#ERROR!' || trimmed === '' ? undefined : trimmed;
+  return trimmed === '#ERROR!' || trimmed === '' || trimmed === 'NO VINO!'
+    ? undefined
+    : trimmed;
 };

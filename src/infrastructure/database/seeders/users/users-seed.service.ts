@@ -324,7 +324,7 @@ export class UsersSeedService {
 
               // Find or create room if roomNumber is provided
               let room = null;
-              if (roomNumber) {
+              if (roomNumber && roomNumber !== 'NO') {
                 room = await this.roomRepository.findOne({
                   roomNumber: roomNumber,
                 });
