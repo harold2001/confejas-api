@@ -20,7 +20,7 @@ import { CompanyRepository } from '../companies/repositories/companies.repositor
 import { MarkAsArrivedDto } from './dto/mark-as-arrived.dto';
 import { DataSource } from 'typeorm';
 import { UserStatus } from '@app/core/enums/user-status';
-import { PermutaUserDto } from './dto/permuta-user.dto';
+import { PermutaExistingUserDto, PermutaUserDto } from './dto/permuta-user.dto';
 import { Gender } from '@app/core/enums/gender';
 import { AttendanceGateway } from '@app/infrastructure/websocket/websocket.gateway';
 import { UserRoomsService } from '../user-rooms/user-rooms.service';
@@ -244,7 +244,7 @@ export class UsersService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const { roleIds, password, companyId, ...userData } = updateUserDto;
+    const { roleIds, password, companyId, roomId, ...userData } = updateUserDto;
 
     const updateData: any = { ...userData };
 
@@ -284,6 +284,14 @@ export class UsersService {
       updateData.company = company;
     }
 
+    if (roomId && roomId.trim() !== '') {
+      const room = await this.roomRepository.findById(roomId);
+      if (!room) {
+        throw new NotFoundException(`Room with ID ${roomId} not found`);
+      }
+      await this.userRoomsService.assignRoom(id, room.id);
+    }
+
     return this.userRepository.update(id, updateData);
   }
 
@@ -291,12 +299,51 @@ export class UsersService {
     return this.userRepository.delete(id);
   }
 
-  async permutaUser(permutaUserDto: PermutaUserDto): Promise<User> {
+  async permutaUser(
+    permutaUserDto: PermutaUserDto | PermutaExistingUserDto,
+  ): Promise<User> {
+    // Permuta con usuario existente
+    if ('isExisting' in permutaUserDto && permutaUserDto.isExisting) {
+      const { permutaUserId, originalUserId } = permutaUserDto;
+
+      // Buscar usuarios
+      const originalUser = await this.userRepository.findById(originalUserId);
+      if (!originalUser) {
+        throw new NotFoundException(
+          `Usuario original con ID ${originalUserId} no encontrado`,
+        );
+      }
+
+      if (originalUser.replacedBy) {
+        throw new BadRequestException(
+          `El usuario ${originalUser.firstName} ${originalUser.paternalLastName} ya fue reemplazado anteriormente`,
+        );
+      }
+
+      const permutaUser = await this.userRepository.findById(permutaUserId);
+      if (!permutaUser) {
+        throw new NotFoundException(
+          `Usuario existente con ID ${permutaUserId} no encontrado`,
+        );
+      }
+
+      // Actualizar usuario original
+      originalUser.hasArrived = false;
+      originalUser.status = UserStatus.REPLACED;
+      originalUser.replacedBy = permutaUser;
+
+      await this.userRepository.update(originalUser.id, originalUser);
+
+      return permutaUser;
+    }
+
+    // Permuta con nuevo usuario (tipo PermutaUserDto)
+    const permutaDto = permutaUserDto as PermutaUserDto;
     const { originalUserId, roleIds, password, stakeId, ...newUserData } =
-      permutaUserDto;
+      permutaDto;
 
+    // Buscar usuario original
     const originalUser = await this.userRepository.findById(originalUserId);
-
     if (!originalUser) {
       throw new NotFoundException(
         `Usuario original con ID ${originalUserId} no encontrado`,
@@ -309,7 +356,8 @@ export class UsersService {
       );
     }
 
-    const createUserDto = {
+    // Crear nuevo usuario
+    const createUserDto: CreateUserDto = {
       ...newUserData,
       password,
       roleIds,
@@ -319,6 +367,7 @@ export class UsersService {
 
     const savedNewUser = await this.create(createUserDto);
 
+    // Actualizar usuario original
     originalUser.hasArrived = false;
     originalUser.status = UserStatus.REPLACED;
     originalUser.replacedBy = savedNewUser;
