@@ -280,4 +280,7 @@ export class CreateUserDto {
   })
   @IsOptional()
   companyId?: string;
+
+  @IsOptional()
+  roomId?: string;
 }

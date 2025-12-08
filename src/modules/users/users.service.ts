@@ -24,6 +24,7 @@ import { PermutaUserDto } from './dto/permuta-user.dto';
 import { Gender } from '@app/core/enums/gender';
 import { AttendanceGateway } from '@app/infrastructure/websocket/websocket.gateway';
 import { UserRoomsService } from '../user-rooms/user-rooms.service';
+import { RoomRepository } from '../rooms/repositories/rooms.repository';
 
 @Injectable()
 export class UsersService {
@@ -39,6 +40,7 @@ export class UsersService {
     private readonly configService: ConfigService,
     private readonly attendanceGateway: AttendanceGateway,
     private readonly userRoomsService: UserRoomsService,
+    private readonly roomRepository: RoomRepository,
   ) {}
 
   async sendQr(userIds: string[]) {
@@ -143,7 +145,7 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { roleIds, password, companyId, ...userData } = createUserDto;
+    const { roleIds, password, companyId, roomId, ...userData } = createUserDto;
 
     const stakeId =
       userData.stakeId && userData.stakeId.trim() !== ''
@@ -176,6 +178,14 @@ export class UsersService {
       }
     }
 
+    let room = undefined;
+    if (roomId && roomId.trim() !== '') {
+      room = await this.roomRepository.findById(roomId);
+      if (!room) {
+        throw new NotFoundException(`Room with ID ${roomId} not found`);
+      }
+    }
+
     const user = await this.userRepository.create({
       ...userData,
       password: password,
@@ -183,6 +193,10 @@ export class UsersService {
       stake,
       company,
     });
+
+    if (room) {
+      await this.userRoomsService.assignRoom(user.id, room.id);
+    }
 
     return user;
   }
@@ -281,79 +295,37 @@ export class UsersService {
     const { originalUserId, roleIds, password, stakeId, ...newUserData } =
       permutaUserDto;
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+    const originalUser = await this.userRepository.findById(originalUserId);
 
-    try {
-      // 1. Buscar usuario original
-      const originalUser = await queryRunner.manager.findOne(User, {
-        where: { id: originalUserId },
-        relations: ['replacedBy'],
-      });
-
-      if (!originalUser) {
-        throw new NotFoundException(
-          `Usuario original con ID ${originalUserId} no encontrado`,
-        );
-      }
-
-      if (originalUser.replacedBy) {
-        throw new BadRequestException(
-          `El usuario ${originalUser.firstName} ${originalUser.paternalLastName} ya fue reemplazado anteriormente`,
-        );
-      }
-
-      // 2. Buscar roles para el nuevo usuario
-      const roles = await Promise.all(
-        roleIds.map(async (roleId) => {
-          const role = await this.roleRepository.findById(roleId);
-          if (!role) {
-            throw new NotFoundException(`Role con ID ${roleId} no encontrado`);
-          }
-          return role;
-        }),
+    if (!originalUser) {
+      throw new NotFoundException(
+        `Usuario original con ID ${originalUserId} no encontrado`,
       );
-
-      // 3. Buscar stake si se proporciona
-      let stake = null;
-      if (stakeId) {
-        stake = await this.stakeRepository.findById(stakeId);
-        if (!stake) {
-          throw new NotFoundException(`Stake con ID ${stakeId} no encontrado`);
-        }
-      }
-
-      // 4. Crear el nuevo usuario (Usuario B) - NO hereda nada del Usuario A
-      const newUser = queryRunner.manager.create(User, {
-        ...newUserData,
-        password: password,
-        roles,
-        stake,
-        hasArrived: false,
-      });
-
-      const savedNewUser = await queryRunner.manager.save(User, newUser);
-
-      // 5. Actualizar el usuario original (Usuario A)
-      originalUser.hasArrived = false;
-      originalUser.status = UserStatus.REPLACED;
-      originalUser.replacedBy = savedNewUser;
-
-      await queryRunner.manager.save(User, originalUser);
-
-      // 6. Confirmar transacción
-      await queryRunner.commitTransaction();
-
-      return savedNewUser;
-    } catch (error) {
-      // Revertir transacción en caso de error
-      await queryRunner.rollbackTransaction();
-      throw error;
-    } finally {
-      // Liberar conexión
-      await queryRunner.release();
     }
+
+    if (originalUser.replacedBy) {
+      throw new BadRequestException(
+        `El usuario ${originalUser.firstName} ${originalUser.paternalLastName} ya fue reemplazado anteriormente`,
+      );
+    }
+
+    const createUserDto = {
+      ...newUserData,
+      password,
+      roleIds,
+      stakeId,
+      hasArrived: false,
+    };
+
+    const savedNewUser = await this.create(createUserDto);
+
+    originalUser.hasArrived = false;
+    originalUser.status = UserStatus.REPLACED;
+    originalUser.replacedBy = savedNewUser;
+
+    await this.userRepository.update(originalUser.id, originalUser);
+
+    return savedNewUser;
   }
 
   async verifyAttendance(token: string) {
