@@ -25,6 +25,7 @@ import { Gender } from '@app/core/enums/gender';
 import { AttendanceGateway } from '@app/infrastructure/websocket/websocket.gateway';
 import { UserRoomsService } from '../user-rooms/user-rooms.service';
 import { RoomRepository } from '../rooms/repositories/rooms.repository';
+import COMMON_NO_RESPONSES from '@app/core/utils/constants/common-no-responses';
 
 @Injectable()
 export class UsersService {
@@ -437,12 +438,9 @@ export class UsersService {
 
   async getStatistics() {
     // Get all users with relations
-    const allUsers = await this.userRepository.findAll();
-
-    // Filter only users with "Participante" role
-    const users = allUsers.filter((user) =>
-      user.roles?.some((role) => role.name === 'Participant'),
-    );
+    const users = await this.userRepository.findAll({
+      roleNames: ['Participant'],
+    });
 
     // Total users
     const totalUsers = users.length;
@@ -474,37 +472,13 @@ export class UsersService {
       if (!u.medicalCondition || u.medicalCondition.trim() === '') return false;
       const condition = u.medicalCondition.toLowerCase().trim();
       // Exclude common "no" responses
-      if (
-        condition.includes('no') ||
-        condition.includes('ninguna') ||
-        condition.includes('ningúna') ||
-        condition === '-' ||
-        condition === '--' ||
-        condition.includes('no tiene') ||
-        condition.includes('no tengo')
-      ) {
-        return false;
-      }
-      return true;
+      return !COMMON_NO_RESPONSES.includes(condition);
     }).length;
 
     const usersWithMedicalTreatment = users.filter((u) => {
       if (!u.medicalTreatment || u.medicalTreatment.trim() === '') return false;
       const treatment = u.medicalTreatment.toLowerCase().trim();
-      // Exclude common "no" responses
-      if (
-        treatment.includes('no') ||
-        treatment.includes('ninguna') ||
-        treatment.includes('ningúna') ||
-        treatment === '-' ||
-        treatment === '--' ||
-        treatment === 'mot' ||
-        treatment.includes('no tiene') ||
-        treatment.includes('no tengo')
-      ) {
-        return false;
-      }
-      return true;
+      return !COMMON_NO_RESPONSES.includes(treatment);
     }).length;
 
     // Blood type statistics
@@ -558,30 +532,6 @@ export class UsersService {
           usersWithAge.length
         : 0;
 
-    // Company statistics
-    const companyMap = new Map<string, any>();
-    users.forEach((u) => {
-      if (u.company) {
-        if (!companyMap.has(u.company.id)) {
-          companyMap.set(u.company.id, {
-            companyId: u.company.id,
-            companyName: u.company.name,
-            userCount: 0,
-            users: [],
-          });
-        }
-        const companyData = companyMap.get(u.company.id);
-        companyData.userCount++;
-        companyData.users.push({
-          id: u.id,
-          firstName: u.firstName,
-          paternalLastName: u.paternalLastName,
-          maternalLastName: u.maternalLastName,
-        });
-      }
-    });
-    const companyStatistics = Array.from(companyMap.values());
-
     // Stake statistics
     const stakeMap = new Map<string, any>();
     users.forEach((u) => {
@@ -622,8 +572,7 @@ export class UsersService {
       bloodTypeStatistics,
       shirtSizeStatistics,
       ageRangeStatistics,
-      averageAge: Math.round(averageAge * 10) / 10, // Round to 1 decimal
-      companyStatistics,
+      averageAge: Math.round(averageAge * 10) / 10,
       stakeStatistics,
     };
   }

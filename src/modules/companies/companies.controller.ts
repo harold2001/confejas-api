@@ -35,6 +35,12 @@ export class CompaniesController {
     return this.companiesService.findAllWithUserCount();
   }
 
+  @Get('statistics')
+  @ApiOperation({ summary: 'Get all companies with user count' })
+  getStatistics() {
+    return this.companiesService.getStatistics();
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a company by id' })
   findOne(@Param('id') id: string) {
