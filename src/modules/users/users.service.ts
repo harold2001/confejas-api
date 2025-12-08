@@ -145,13 +145,11 @@ export class UsersService {
   async create(createUserDto: CreateUserDto): Promise<User> {
     const { roleIds, password, companyId, ...userData } = createUserDto;
 
-    // Convert empty strings to undefined for UUID fields
     const stakeId =
       userData.stakeId && userData.stakeId.trim() !== ''
         ? userData.stakeId
         : undefined;
 
-    // Fetch all roles
     const roles = await Promise.all(
       roleIds.map(async (roleId) => {
         const role = await this.roleRepository.findById(roleId);
@@ -162,7 +160,6 @@ export class UsersService {
       }),
     );
 
-    // Validate and fetch stake if stakeId is provided
     let stake = undefined;
     if (stakeId) {
       stake = await this.stakeRepository.findById(stakeId);
@@ -171,7 +168,6 @@ export class UsersService {
       }
     }
 
-    // Validate and fetch company if companyId is provided
     let company = undefined;
     if (companyId && companyId.trim() !== '') {
       company = await this.companyRepository.findById(companyId);
@@ -187,10 +183,6 @@ export class UsersService {
       stake,
       company,
     });
-
-    // Generate attendance token (valid for 1 week)
-    const attendanceToken = this.generateAttendanceToken(user.id);
-    console.log(`Attendance token for user ${user.id}: ${attendanceToken}`);
 
     return user;
   }
