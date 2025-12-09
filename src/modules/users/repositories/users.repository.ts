@@ -9,6 +9,7 @@ import {
   Not,
   IsNull,
   And,
+  Or,
 } from 'typeorm';
 import { Injectable } from '@nestjs/common';
 import { User } from '@app/modules/users/entities/user.entity';
@@ -60,35 +61,35 @@ export class UserRepository
     }
 
     if (filters?.firstName) {
-      where.firstName = ILike(`%${filters.firstName}%`);
+      where.firstName = ILike(`%${filters.firstName.trim()}%`);
     }
 
     if (filters?.middleName) {
-      where.middleName = ILike(`%${filters.middleName}%`);
+      where.middleName = ILike(`%${filters.middleName.trim()}%`);
     }
 
     if (filters?.paternalLastName) {
-      where.paternalLastName = ILike(`%${filters.paternalLastName}%`);
+      where.paternalLastName = ILike(`%${filters.paternalLastName.trim()}%`);
     }
 
     if (filters?.maternalLastName) {
-      where.maternalLastName = ILike(`%${filters.maternalLastName}%`);
+      where.maternalLastName = ILike(`%${filters.maternalLastName.trim()}%`);
     }
 
     if (filters?.dni) {
-      where.dni = ILike(`%${filters.dni}%`);
+      where.dni = ILike(`%${filters.dni.trim()}%`);
     }
 
     if (filters?.phone) {
-      where.phone = ILike(`%${filters.phone}%`);
+      where.phone = ILike(`%${filters.phone.trim()}%`);
     }
 
     if (filters?.address) {
-      where.address = ILike(`%${filters.address}%`);
+      where.address = ILike(`%${filters.address.trim()}%`);
     }
 
     if (filters?.department) {
-      where.department = ILike(`%${filters.department}%`);
+      where.department = ILike(`%${filters.department.trim()}%`);
     }
 
     if (filters?.hasArrived !== undefined) {
@@ -96,44 +97,61 @@ export class UserRepository
     }
 
     if (filters?.medicalCondition) {
-      where.medicalCondition = ILike(`%${filters.medicalCondition}%`);
+      where.medicalCondition = ILike(`%${filters.medicalCondition.trim()}%`);
     }
 
     if (filters?.medicalTreatment) {
-      where.medicalTreatment = ILike(`%${filters.medicalTreatment}%`);
+      where.medicalTreatment = ILike(`%${filters.medicalTreatment.trim()}%`);
     }
 
     if (filters?.hasMedicalCondition !== undefined) {
-      if (filters.hasMedicalCondition) {
+      if (filters.hasMedicalCondition === true) {
         where.medicalCondition = And(
           Not(ILike('%no%')),
           Not(ILike('%ninguna%')),
           Not(ILike('%ningúna%')),
-          Not('-'),
-          Not('--'),
+          Not(ILike('-')),
+          Not(ILike('--')),
+        );
+      } else {
+        where.medicalCondition = Or(
+          ILike('%no%'),
+          ILike('%ninguna%'),
+          ILike('%ningúna%'),
+          ILike('-'),
+          ILike('--'),
         );
       }
     }
 
     if (filters?.hasMedicalTreatment !== undefined) {
-      if (filters.hasMedicalTreatment) {
+      if (filters.hasMedicalTreatment === true) {
         where.medicalTreatment = And(
           Not(ILike('%no%')),
           Not(ILike('%ninguna%')),
           Not(ILike('%ningúna%')),
-          Not('-'),
-          Not('--'),
-          Not('mot'),
+          Not(ILike('-')),
+          Not(ILike('--')),
+          Not(ILike('mot')),
+        );
+      } else {
+        where.medicalTreatment = Or(
+          ILike('%no%'),
+          ILike('%ninguna%'),
+          ILike('%ningúna%'),
+          ILike('-'),
+          ILike('--'),
+          ILike('mot'),
         );
       }
     }
 
     if (filters?.keyCode) {
-      where.keyCode = ILike(`%${filters.keyCode}%`);
+      where.keyCode = ILike(`%${filters.keyCode.trim()}%`);
     }
 
     if (filters?.ward) {
-      where.ward = ILike(`%${filters.ward}%`);
+      where.ward = ILike(`%${filters.ward.trim()}%`);
     }
 
     if (filters?.stakeId) {
@@ -145,7 +163,7 @@ export class UserRepository
     }
 
     if (filters?.stakeName) {
-      where.stake = { name: ILike(`%${filters.stakeName}%`) };
+      where.stake = { name: ILike(`%${filters.stakeName.trim()}%`) };
     }
 
     if (filters?.age) {
@@ -157,7 +175,7 @@ export class UserRepository
     }
 
     if (filters?.notes) {
-      where.notes = ILike(`%${filters.notes}%`);
+      where.notes = ILike(`%${filters.notes.trim()}%`);
     }
 
     if (filters?.status) {
@@ -165,19 +183,21 @@ export class UserRepository
     }
 
     if (filters?.shirtSize) {
-      where.shirtSize = ILike(`%${filters.shirtSize}%`);
+      where.shirtSize = ILike(`%${filters.shirtSize.trim()}%`);
     }
 
     if (filters?.bloodType) {
-      where.bloodType = ILike(`%${filters.bloodType}%`);
+      where.bloodType = ILike(`%${filters.bloodType.trim()}%`);
     }
 
     if (filters?.healthInsurance) {
-      where.healthInsurance = ILike(`%${filters.healthInsurance}%`);
+      where.healthInsurance = ILike(`%${filters.healthInsurance.trim()}%`);
     }
 
     if (filters?.emergencyContactName) {
-      where.emergencyContactName = ILike(`%${filters.emergencyContactName}%`);
+      where.emergencyContactName = ILike(
+        `%${filters.emergencyContactName.trim()}%`,
+      );
     }
 
     if (filters?.emergencyContactPhone) {
@@ -209,7 +229,7 @@ export class UserRepository
     }
 
     if (filters?.searchName) {
-      const searchPattern = `%${filters.searchName}%`;
+      const searchPattern = `%${filters.searchName.trim()}%`;
 
       return [
         { ...where, firstName: ILike(searchPattern) },

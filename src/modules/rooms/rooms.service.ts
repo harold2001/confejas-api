@@ -153,7 +153,23 @@ export class RoomsService {
     return buildings;
   }
 
-  async findAllWithUserCount(): Promise<Array<Room & { userCount: number }>> {
-    return this.roomRepository.findAllWithUserCount();
+  async findAllWithUserCount() {
+    const rooms = await this.roomRepository.findAll();
+
+    return rooms.map((room) => {
+      const occupiedBeds =
+        room.userRooms?.filter(
+          (ur) =>
+            ur.isActive && (ur.user.hasArrived || ur.user.hasOneRole('Staff')),
+        ).length || 0;
+      const totalBeds = room.totalBeds || 0;
+      const availableBeds = totalBeds - occupiedBeds;
+
+      return {
+        ...room,
+        occupiedBeds,
+        availableBeds,
+      };
+    });
   }
 }

@@ -1,5 +1,6 @@
 import { UserStatus } from '@app/core/enums/user-status';
 import { Gender } from '@app/core/enums/gender';
+import { Trim } from '@app/core/decorators/trim.decorator';
 
 export class FilterUserDto {
   searchName?: string;
