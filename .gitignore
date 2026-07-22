@@ -60,3 +60,4 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env.local
 .env.staging
 .env.production
+import-users.csv
