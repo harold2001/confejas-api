@@ -17,7 +17,7 @@ async function bootstrap() {
     await seeder.seed();
     logger.log('✅ Seeding complete!');
   } catch (err) {
-    logger.error('❌ Seeding failed!', err.stack);
+    logger.error('❌ Seeding failed!', err);
     throw err;
   } finally {
     await context.close();

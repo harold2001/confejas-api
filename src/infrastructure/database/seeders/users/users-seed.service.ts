@@ -9,6 +9,9 @@ import {
   cleanValue,
   getGenderFromString,
   getUserStatusFromString,
+  resolveCompany,
+  resolveRoles,
+  resolveRoomNumber,
 } from '@app/core/utils/helpers';
 import { RoleRepository } from '@app/modules/roles/repositories/roles.repository';
 import { StakeRepository } from '@app/modules/stakes/repositories/stakes.repository';
@@ -16,6 +19,7 @@ import { CompanyRepository } from '@app/modules/companies/repositories/companies
 import { UserRepository } from '@app/modules/users/repositories/users.repository';
 import { RoomRepository } from '@app/modules/rooms/repositories/rooms.repository';
 import { UserRoomRepository } from '@app/modules/user-rooms/repositories/user-rooms.repository';
+import { UserStatus } from '@app/core/enums/user-status';
 
 @Injectable()
 export class UsersSeedService {
@@ -44,9 +48,9 @@ export class UsersSeedService {
     }
 
     // Step 2: Import participants from CSV
-    this.logger.log('Importing participants from CSV...');
-    const csvUsers = await this.importFromCSV();
-    createdUsers.push(...csvUsers);
+    // this.logger.log('Importing participants from CSV...');
+    // const csvUsers = await this.importFromCSV();
+    // createdUsers.push(...csvUsers);
 
     this.logger.log(`Users seeding completed. Total: ${createdUsers.length}`);
     this.logger.log(
@@ -162,16 +166,12 @@ export class UsersSeedService {
     const createdUsers: User[] = [];
 
     // Get the Participant role once
-    const participantRole = await this.roleRepository.findOne({
-      name: 'Participant',
-    });
+    const roles = await this.roleRepository.findAll();
 
-    const staffRole = await this.roleRepository.findOne({
-      name: 'Staff',
-    });
+    const companies = await this.companyRepository.findAll();
 
-    if (!participantRole) {
-      this.logger.error('Participant role not found, cannot import CSV users');
+    if (!roles.length) {
+      this.logger.error('Roles not found, cannot import CSV users');
       return [];
     }
 
@@ -187,31 +187,36 @@ export class UsersSeedService {
           for (const row of results) {
             try {
               // Parse CSV columns
-              const firstName = cleanValue(row['Primer Nombre']);
-              const middleName = cleanValue(row['Segundo Nombre']);
-              const paternalLastName = cleanValue(row['Primer Apellido']);
-              const maternalLastName = cleanValue(row['Segundo Apellido']);
-              const stakeName = cleanValue(row['Estaca']);
-              const wardName = cleanValue(row['Barrio']);
-              const status = cleanValue(row['Estado']);
-              const companyNumber = cleanValue(row['Compañias']);
-              const roomNumber = cleanValue(row['Habitación']);
-              const birthDateRaw = cleanValue(row['Fecha de nacimiento2']);
+              const firstName = cleanValue(row['Primer nombre']);
+              const middleName = cleanValue(row['Segundo nombre']);
+              const paternalLastName = cleanValue(row['Primer apellido']);
+              const maternalLastName = cleanValue(row['Segundo apellido']);
+              const preferredName = cleanValue(row['Nombre de preferencia']);
+              const status = cleanValue(row['Status']) as
+                | 'PARTICIPANTE'
+                | 'STAFF'
+                | 'ADMIN';
+              const birthDateRaw = cleanValue(row['Fecha de Nacimiento']);
               const gender = cleanValue(row['Sexo']);
               const phoneNumberRaw = cleanValue(
                 row['Número de celular (incluya el indicador de pais)'],
               );
-              const email = cleanValue(row['Correo electrónico']);
+              const email = cleanValue(row['Correo Electrónico']);
               const age = cleanValue(row['Edad']);
-
               const shirtSize = cleanValue(
                 row['Elija el tamaño de su camiseta'],
               );
               const isChurchMember = cleanValue(
                 row[
-                  '¿Eres miembro de la Iglesia de Jesucristo de los Santos de los Últimos Días?'
+                  '¿Miembro de la iglesia de Jesucristo de los Santos de los Últimos días?'
+                ] as 'SI' | 'NO' | '',
+              );
+              const stakeName = cleanValue(
+                row[
+                  'Seleccione su estaca, distrito o misión para ramas de misión'
                 ],
               );
+              const wardName = cleanValue(row['Barrio o Rama']);
               const bloodType = cleanValue(
                 row['Grupo sanguíneo y factor (RH)'],
               );
@@ -229,6 +234,14 @@ export class UsersSeedService {
               );
               const emergencyContactPhoneRaw = cleanValue(
                 row['Teléfono - Persona de contacto'],
+              );
+              const companyNumber = cleanValue(row['Compañias'])
+                ?.toLowerCase()
+                ?.replace('compañia', '')
+                ?.replace('compañía', '')
+                ?.trim(); // We just want the number, not the word "Compañia"
+              const roomNumber = resolveRoomNumber(
+                cleanValue(row['Habitación']),
               );
 
               // Convert birthDate to YYYY-MM-DD (auto-detect format)
@@ -297,14 +310,6 @@ export class UsersSeedService {
               //   continue;
               // }
 
-              // Check if user already exists (by first name + last name combination)
-              const existingUser = await this.userRepository.findOne({
-                firstName: firstName,
-                middleName: middleName || undefined,
-                paternalLastName: paternalLastName,
-                maternalLastName: maternalLastName || undefined,
-              });
-
               // Find stake
               const stake = stakeName
                 ? await this.stakeRepository.findOne({
@@ -312,11 +317,7 @@ export class UsersSeedService {
                   })
                 : null;
 
-              const company = companyNumber
-                ? await this.companyRepository.findOne({
-                    number: Number(companyNumber),
-                  })
-                : null;
+              const company = resolveCompany(companyNumber, companies);
 
               if (stakeName && !stake) {
                 this.logger.warn(`Stake '${stakeName}' not found in database`);
@@ -324,7 +325,7 @@ export class UsersSeedService {
 
               // Find or create room if roomNumber is provided
               let room = null;
-              if (roomNumber && roomNumber !== 'NO') {
+              if (roomNumber) {
                 room = await this.roomRepository.findOne({
                   roomNumber: roomNumber,
                 });
@@ -342,6 +343,15 @@ export class UsersSeedService {
               const isMemberOfTheChurch =
                 isChurchMember?.toLowerCase() === 'si' ||
                 isChurchMember?.toLowerCase() === 'sí';
+
+              // Check if user already exists (by first name + last name combination)
+
+              const existingUser = await this.userRepository.findOne({
+                firstName: firstName,
+                middleName: middleName || undefined,
+                paternalLastName: paternalLastName,
+                maternalLastName: maternalLastName || undefined,
+              });
 
               if (existingUser) {
                 if (skipExisting) {
@@ -427,6 +437,7 @@ export class UsersSeedService {
                 middleName: middleName || undefined,
                 paternalLastName: paternalLastName,
                 maternalLastName: maternalLastName || undefined,
+                preferredName: preferredName || undefined,
                 birthDate: birthDate || undefined,
                 gender: gender ? getGenderFromString(gender) : undefined,
                 phone: phoneNumber || undefined,
@@ -443,8 +454,9 @@ export class UsersSeedService {
                 notes: undefined,
                 stake: stake || undefined,
                 company: company || undefined,
-                roles: [status === 'Staff' ? staffRole : participantRole],
-                status: status ? getUserStatusFromString(status) : undefined,
+                roles: resolveRoles(status, companyNumber, roles),
+                // status: status ? getUserStatusFromString(status) : undefined,
+                status: UserStatus.ASISTIRA,
                 shirtSize: shirtSize || undefined,
                 bloodType: bloodType || undefined,
                 healthInsurance: healthInsurance || undefined,

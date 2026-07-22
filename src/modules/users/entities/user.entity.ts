@@ -33,6 +33,9 @@ export class User extends BaseModel {
   @Column({ nullable: true })
   maternalLastName?: string;
 
+  @Column({ nullable: true })
+  preferredName?: string;
+
   @Column({ nullable: true, unique: false })
   dni?: string;
 

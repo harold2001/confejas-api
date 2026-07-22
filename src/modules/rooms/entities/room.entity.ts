@@ -9,6 +9,9 @@ export class Room extends BaseModel {
   @Column({ unique: true })
   roomNumber: string;
 
+  @Column({ default: false })
+  isWeddingRoom: boolean;
+
   @ManyToOne(() => RoomType, (roomType) => roomType.rooms, {
     eager: true,
     nullable: true,

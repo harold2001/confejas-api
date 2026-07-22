@@ -1,6 +1,4 @@
 export const buildingsData = [
-  { name: 'Albergues' },
-  { name: 'Auditorio' },
-  { name: 'Capilla' },
-  { name: 'Bungalows' },
+  { name: 'Edificio' },
+  { name: 'Bungalow' },
 ];

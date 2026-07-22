@@ -85,6 +85,7 @@ export class RoomsSeedService {
         totalBeds: roomData.totalBeds,
         floor: floor,
         roomType: roomType,
+        isWeddingRoom: roomData.isWeddingRoom || false,
       });
 
       const savedRoom = await this.roomRepository.save(room);
